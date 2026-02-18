@@ -2,6 +2,7 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { ArrowUpIcon, ArrowDownIcon, InfoIcon } from "lucide-react"
+import { formatCurrency } from "@/lib/utils"
 import {
   Tooltip,
   TooltipContent,
@@ -71,43 +72,35 @@ interface KPICardsProps {
     dso: number
     avgDaysToPay: number
   }
+  currency?: string
 }
 
-export function KPICards({ data }: KPICardsProps) {
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat("en-US", {
-      style: "currency",
-      currency: "USD",
-      minimumFractionDigits: 0,
-      maximumFractionDigits: 0,
-    }).format(value)
-  }
-
+export function KPICards({ data, currency = "USD" }: KPICardsProps) {
   const kpis: KPICardProps[] = [
     {
       title: "Total Outstanding",
-      value: formatCurrency(data.totalOutstanding),
+      value: formatCurrency(data.totalOutstanding, currency),
       trend: "up",
       trendValue: "+5.2%",
       tooltip: "Sum of all unpaid invoice amounts across all customers",
     },
     {
       title: "Overdue Amount",
-      value: formatCurrency(data.overdueAmount),
+      value: formatCurrency(data.overdueAmount, currency),
       trend: "up",
       trendValue: "+12.3%",
       tooltip: "Total amount past due date, requires immediate attention",
     },
     {
       title: "Partially Paid",
-      value: formatCurrency(data.partiallyPaid),
+      value: formatCurrency(data.partiallyPaid, currency),
       trend: "neutral",
       trendValue: "0%",
       tooltip: "Invoices with partial payments received",
     },
     {
       title: "Committed Payments",
-      value: formatCurrency(data.committedPayments),
+      value: formatCurrency(data.committedPayments, currency),
       trend: "down",
       trendValue: "-8.1%",
       tooltip: "Payments promised by customers with confirmed dates",

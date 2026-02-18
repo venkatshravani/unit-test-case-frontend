@@ -148,7 +148,7 @@ export default function Dashboard() {
           <p className="text-sm font-semibold text-muted-foreground px-1">
             {filters.entity !== "all" ? `${filters.entity}` : "All Entities"} - Key Collection Metrics
           </p>
-          <KPICards data={kpiData} />
+          <KPICards data={kpiData} currency={filters.currency} />
         </div>
 
         {/* Charts Row with AI Insights */}
