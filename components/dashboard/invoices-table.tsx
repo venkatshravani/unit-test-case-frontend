@@ -189,64 +189,53 @@ export function InvoicesTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              {!hideCollectionAgent && (
-                <TableHead className="font-semibold whitespace-nowrap">Collection Agent</TableHead>
-              )}
-              <TableHead className="font-semibold whitespace-nowrap">Customer</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Invoice No</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Customer Name</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Voucher</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Currency</TableHead>
+              <TableHead className="font-semibold text-right whitespace-nowrap">Balance</TableHead>
+              <TableHead className="font-semibold text-right whitespace-nowrap">Amount In</TableHead>
               <TableHead className="font-semibold whitespace-nowrap">Invoice Date</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Processing Date</TableHead>
-              <TableHead className="font-semibold text-right whitespace-nowrap">Value</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">1st Follow-Up (Scheduled)</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">1st Follow-Up (Actual)</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Subsequent Follow-Up</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Prev. Invoice No</TableHead>
-              <TableHead className="font-semibold text-right whitespace-nowrap">Prev. Outstanding Amt</TableHead>
-              <TableHead className="font-semibold text-right whitespace-nowrap">Collection Target</TableHead>
-              <TableHead className="font-semibold text-right whitespace-nowrap">Credit Period</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Penal Interest</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Overdue</TableHead>
-              <TableHead className="font-semibold whitespace-nowrap">Reason for Overdue</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Due Date</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Project</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Overdue Status</TableHead>
+              <TableHead className="font-semibold whitespace-nowrap">Days Overdue</TableHead>
               <TableHead className="font-semibold w-[50px]"></TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
-            {paginatedInvoices.map((invoice) => (
+            {paginatedInvoices.map((invoice) => {
+              const invoiceDate = new Date(invoice.invoiceDate)
+              const dueDate = new Date(invoiceDate)
+              dueDate.setDate(dueDate.getDate() + invoice.creditPeriod)
+              const today = new Date()
+              const daysOverdue = invoice.overdue ? Math.floor((today.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)) : 0
+              
+              return (
               <TableRow key={invoice.id} className="hover:bg-muted/30">
-                {!hideCollectionAgent && (
-                  <TableCell className="whitespace-nowrap">{invoice.collectionAgent}</TableCell>
-                )}
-                <TableCell className="whitespace-nowrap">{invoice.customer}</TableCell>
+                <TableCell className="font-medium whitespace-nowrap">{invoice.customer}</TableCell>
                 <TableCell 
                   className="font-medium text-primary cursor-pointer hover:underline whitespace-nowrap"
                   onClick={() => handleInvoiceClick(invoice)}
                 >
                   {invoice.invoiceNo}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">{formatDate(invoice.invoiceDate)}</TableCell>
-                <TableCell className="whitespace-nowrap">{formatDate(invoice.invoiceProcessingDate)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.value, invoice.documentCurrency)}</TableCell>
-                <TableCell className="whitespace-nowrap">{formatDate(invoice.firstFollowUpScheduled)}</TableCell>
-                <TableCell className="whitespace-nowrap">{formatDate(invoice.firstFollowUpActual)}</TableCell>
-                <TableCell className="whitespace-nowrap">{formatDate(invoice.subsequentFollowUpActual)}</TableCell>
-                <TableCell className="whitespace-nowrap">{invoice.previousOutstandingInvoiceNo || "-"}</TableCell>
+                <TableCell className="whitespace-nowrap">{invoice.documentCurrency}</TableCell>
+                <TableCell className="text-right whitespace-nowrap font-medium">{formatCurrency(invoice.value, invoice.documentCurrency)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.previousOutstandingAmount, invoice.documentCurrency)}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{formatDate(invoice.invoiceDate)}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{formatDate(dueDate.toISOString().split('T')[0])}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{invoice.collectionTarget > 0 ? formatCurrency(invoice.collectionTarget, invoice.documentCurrency) : "-"}</TableCell>
+                <TableCell className="whitespace-nowrap">
+                  <Badge variant="secondary" className={invoice.overdue ? "bg-destructive/15 text-destructive hover:bg-destructive/15" : "bg-green-100/50 text-green-700 hover:bg-green-100/50"}>
+                    {invoice.overdue ? "Overdue" : "On Time"}
+                  </Badge>
+                </TableCell>
                 <TableCell className="text-right whitespace-nowrap">
-                  {invoice.previousOutstandingAmount > 0 ? formatCurrency(invoice.previousOutstandingAmount, invoice.documentCurrency) : "-"}
-                </TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.collectionTarget, invoice.documentCurrency)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{invoice.creditPeriod} days</TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <Badge variant="secondary" className={invoice.penalInterest ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-muted text-muted-foreground hover:bg-muted"}>
-                    {invoice.penalInterest ? "Yes" : "No"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="whitespace-nowrap">
-                  <Badge variant="secondary" className={invoice.overdue ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-green-100 text-green-800 hover:bg-green-100"}>
-                    {invoice.overdue ? "Yes" : "No"}
-                  </Badge>
-                </TableCell>
-                <TableCell className="max-w-[200px] truncate whitespace-nowrap" title={invoice.reasonForOverdue}>
-                  {invoice.reasonForOverdue || "-"}
+                  {daysOverdue > 0 ? (
+                    <span className="text-destructive font-medium">{daysOverdue}d</span>
+                  ) : (
+                    <span className="text-muted-foreground">-</span>
+                  )}
                 </TableCell>
                 <TableCell>
                   <DropdownMenu>
@@ -275,16 +264,12 @@ export function InvoicesTable({
                         <SendIcon className="mr-2 h-4 w-4" />
                         Send Reminder
                       </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem onClick={() => onTriggerReminder?.(invoice.id)} className="text-primary hover:text-primary">
-                        <SendIcon className="mr-2 h-4 w-4" />
-                        Send Reminder Email (Priority)
-                      </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            ))}
+            )})}
+          </TableBody>
           </TableBody>
         </Table>
       </div>
