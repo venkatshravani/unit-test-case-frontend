@@ -268,7 +268,8 @@ export function InvoicesTable({
                   </DropdownMenu>
                 </TableCell>
               </TableRow>
-            )})}
+              )
+            })}
           </TableBody>
           </TableBody>
         </Table>
