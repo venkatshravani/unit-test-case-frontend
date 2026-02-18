@@ -271,7 +271,6 @@ export function InvoicesTable({
               )
             })}
           </TableBody>
-          </TableBody>
         </Table>
       </div>
 
