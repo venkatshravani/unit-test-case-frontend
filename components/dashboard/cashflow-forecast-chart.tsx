@@ -15,7 +15,26 @@ import {
   ComposedChart,
 } from "recharts"
 import { computeCashflow } from "@/lib/data"
-import { Invoice } from "@/components/dashboard/invoices-table"
+
+interface Invoice {
+  id: string
+  collectionAgent: string
+  customer: string
+  invoiceNo: string
+  invoiceDate: string
+  invoiceProcessingDate: string
+  value: number
+  firstFollowUpScheduled: string
+  firstFollowUpActual: string
+  subsequentFollowUpActual: string
+  previousOutstandingInvoiceNo: string
+  previousOutstandingAmount: number
+  collectionTarget: number
+  creditPeriod: number
+  penalInterest: boolean
+  overdue: boolean
+  reasonForOverdue: string
+}
 
 interface CashflowData {
   week: string
