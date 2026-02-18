@@ -264,7 +264,12 @@ export function InvoicesTable({
                       </DropdownMenuItem>
                       <DropdownMenuItem onClick={() => onTriggerReminder?.(invoice.id)}>
                         <SendIcon className="mr-2 h-4 w-4" />
-                        Trigger Reminder
+                        Send Reminder
+                      </DropdownMenuItem>
+                      <DropdownMenuSeparator />
+                      <DropdownMenuItem onClick={() => onTriggerReminder?.(invoice.id)} className="text-primary hover:text-primary">
+                        <SendIcon className="mr-2 h-4 w-4" />
+                        Send Reminder Email (Priority)
                       </DropdownMenuItem>
                     </DropdownMenuContent>
                   </DropdownMenu>

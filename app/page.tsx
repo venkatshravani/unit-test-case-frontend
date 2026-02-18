@@ -12,6 +12,8 @@ import { CallsTab } from "@/components/dashboard/calls-tab"
 import { QueriesTab } from "@/components/dashboard/queries-tab"
 import { ReportsTab } from "@/components/dashboard/reports-tab"
 import { PortfolioPerformanceTab } from "@/components/dashboard/portfolio-performance-tab"
+import { AICollectionInsights } from "@/components/dashboard/ai-collection-insights"
+import { DataStatusBanner } from "@/components/dashboard/data-status-banner"
 import {
   FileTextIcon,
   BellIcon,
@@ -142,14 +144,14 @@ export default function Dashboard() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
+            <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Invoice Collection Dashboard</h1>
               <p className="text-sm text-muted-foreground">
                 Manage invoices, track payments, and coordinate collection efforts
               </p>
             </div>
-            <div className="text-sm text-muted-foreground">Last updated: {currentDate}</div>
+            <div className="text-sm text-muted-foreground">Data Last Refreshed: {currentDate}</div>
           </div>
         </div>
       </header>
@@ -178,17 +180,45 @@ export default function Dashboard() {
         {/* Dashboard Content */}
         {!loading && !error && (
           <>
+            {/* Data Status Banner */}
+            <DataStatusBanner />
+
             {/* Global Filters */}
-            <GlobalFilters onFilterChange={handleFilterChange} />
+            <GlobalFilters onFilterChange={handleFilterChange />
 
-        {/* KPI Cards */}
-        <KPICards data={kpiData} />
+            {/* Active View Context Label */}
+            <div className="text-sm text-muted-foreground px-4 py-2 bg-muted/30 rounded-md border border-muted">
+              <span className="font-medium">Active View:</span>
+              {filters.entity !== "all" && <span> {filters.entity} Entity</span>}
+              {filters.businessUnit !== "all" && <span> | BU: {filters.businessUnit}</span>}
+              {filters.selectedOwners.length > 0 && (
+                <span> | Portfolio Owner: {filters.selectedOwners.join(", ")}</span>
+              )}
+              {filters.entity === "all" && filters.businessUnit === "all" && filters.selectedOwners.length === 0 && (
+                <span> All Entities | All Business Units | All Owners</span>
+              )}
+            </div>
 
-        {/* Charts Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <AgingBucketsChart data={agingData} />
-          <CashflowForecastChart data={cashflowData} />
-        </div>
+            {/* KPI Cards with Header */}
+            <div className="space-y-3">
+              <p className="text-sm font-semibold text-muted-foreground px-1">
+                {filters.entity !== "all" ? `${filters.entity}` : "All Entities"} - Key Collection Metrics
+              </p>
+              <KPICards data={kpiData} />
+            </div>
+
+            {/* Charts Row with AI Insights */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <AgingBucketsChart data={agingData} />
+              </div>
+              <div className="lg:col-span-1">
+                <CashflowForecastChart data={cashflowData} />
+              </div>
+              <div className="lg:col-span-1">
+                <AICollectionInsights invoices={filteredInvoices} />
+              </div>
+            </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
