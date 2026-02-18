@@ -19,9 +19,11 @@ import {
   MessageSquareIcon,
   BarChart3Icon,
   BriefcaseIcon,
+  Loader2Icon,
+  AlertCircleIcon,
 } from "lucide-react"
+import { useDashboard } from "@/hooks/use-dashboard"
 import {
-  allInvoices,
   reminderRules,
   sentReminders,
   calls,
@@ -34,13 +36,24 @@ import {
   computeAgingBuckets,
   computeCashflow,
   computePortfolioPerformance,
+  allInvoices,
 } from "@/lib/data"
+import { Alert, AlertDescription } from "@/components/ui/alert"
+import { useEffect } from "react"
 
 export default function Dashboard() {
+  const { data: dashboardData, loading, error } = useDashboard()
   const [activeTab, setActiveTab] = useState("invoices")
   const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
   const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
   const [invoiceData, setInvoiceData] = useState<Invoice[]>(allInvoices)
+
+  // Update invoice data when API data is loaded
+  useEffect(() => {
+    if (dashboardData?.invoices) {
+      setInvoiceData(dashboardData.invoices)
+    }
+  }, [dashboardData?.invoices])
 
   // Filter state lifted from GlobalFilters
   const [filters, setFilters] = useState<FilterState>({
@@ -78,9 +91,27 @@ export default function Dashboard() {
   }, [invoiceData, filters.businessUnit, filters.selectedOwners, filters.customer])
 
   // Dynamically recompute KPIs, aging, cashflow from filtered data
-  const kpiData = useMemo(() => computeKPIs(filteredInvoices), [filteredInvoices])
-  const agingData = useMemo(() => computeAgingBuckets(filteredInvoices), [filteredInvoices])
-  const cashflowData = useMemo(() => computeCashflow(filteredInvoices), [filteredInvoices])
+  const kpiData = useMemo(() => {
+    if (dashboardData?.summary) {
+      return dashboardData.summary
+    }
+    return computeKPIs(filteredInvoices)
+  }, [filteredInvoices, dashboardData?.summary])
+
+  const agingData = useMemo(() => {
+    if (dashboardData?.aging) {
+      return dashboardData.aging
+    }
+    return computeAgingBuckets(filteredInvoices)
+  }, [filteredInvoices, dashboardData?.aging])
+
+  const cashflowData = useMemo(() => {
+    if (dashboardData?.forecast) {
+      return dashboardData.forecast
+    }
+    return computeCashflow(filteredInvoices)
+  }, [filteredInvoices, dashboardData?.forecast])
+
   const portfolioData = useMemo(() => computePortfolioPerformance(invoiceData), [invoiceData])
 
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -124,8 +155,31 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Global Filters */}
-        <GlobalFilters onFilterChange={handleFilterChange} />
+        {/* Loading State */}
+        {loading && (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-center">
+              <Loader2Icon className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
+              <p className="text-muted-foreground">Loading dashboard data...</p>
+            </div>
+          </div>
+        )}
+
+        {/* Error State */}
+        {error && !loading && (
+          <Alert variant="destructive">
+            <AlertCircleIcon className="h-4 w-4" />
+            <AlertDescription>
+              Failed to load dashboard: {error}. Check your API configuration and network connection.
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {/* Dashboard Content */}
+        {!loading && !error && (
+          <>
+            {/* Global Filters */}
+            <GlobalFilters onFilterChange={handleFilterChange} />
 
         {/* KPI Cards */}
         <KPICards data={kpiData} />
@@ -218,6 +272,8 @@ export default function Dashboard() {
             <ReportsTab />
           </TabsContent>
         </Tabs>
+          </>
+        )}
       </main>
     </div>
   )
