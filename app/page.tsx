@@ -34,7 +34,6 @@ import {
   filterInvoicesByBU,
   computeKPIs,
   computeAgingBuckets,
-  computeCashflow,
   computePortfolioPerformance,
 } from "@/lib/data"
 
@@ -82,7 +81,6 @@ export default function Dashboard() {
   // Dynamically recompute KPIs, aging, cashflow from filtered data
   const kpiData = useMemo(() => computeKPIs(filteredInvoices), [filteredInvoices])
   const agingData = useMemo(() => computeAgingBuckets(filteredInvoices), [filteredInvoices])
-  const cashflowData = useMemo(() => computeCashflow(filteredInvoices), [filteredInvoices])
   const portfolioData = useMemo(() => computePortfolioPerformance(invoiceData), [invoiceData])
 
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -154,17 +152,17 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Row with AI Insights */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-1">
-            <AgingBucketsChart data={agingData} />
-          </div>
-          <div className="lg:col-span-1">
-            <CashflowForecastChart data={cashflowData} />
-          </div>
-          <div className="lg:col-span-1">
-            <AICollectionInsights invoices={filteredInvoices} />
-          </div>
-        </div>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-1">
+                <AgingBucketsChart data={agingData} />
+              </div>
+              <div className="lg:col-span-1">
+                <CashflowForecastChart invoices={filteredInvoices} />
+              </div>
+              <div className="lg:col-span-1">
+                <AICollectionInsights invoices={filteredInvoices} />
+              </div>
+            </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
