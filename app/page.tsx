@@ -184,7 +184,7 @@ export default function Dashboard() {
             <DataStatusBanner />
 
             {/* Global Filters */}
-            <GlobalFilters onFilterChange={handleFilterChange />
+            <GlobalFilters onFilterChange={handleFilterChange} />
 
             {/* Active View Context Label */}
             <div className="text-sm text-muted-foreground px-4 py-2 bg-muted/30 rounded-md border border-muted">
