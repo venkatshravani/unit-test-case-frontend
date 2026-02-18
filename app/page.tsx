@@ -35,13 +35,17 @@ import {
   computeKPIs,
   computeAgingBuckets,
   computePortfolioPerformance,
+  enrichInvoicesWithDocumentCurrency,
 } from "@/lib/data"
 
 export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("invoices")
   const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
   const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
-  const [invoiceData, setInvoiceData] = useState<Invoice[]>(allInvoices)
+  // Enrich invoices with document currency on load
+  const [invoiceData, setInvoiceData] = useState<Invoice[]>(() => 
+    enrichInvoicesWithDocumentCurrency(allInvoices)
+  )
 
   // Filter state lifted from GlobalFilters
   const [filters, setFilters] = useState<FilterState>({

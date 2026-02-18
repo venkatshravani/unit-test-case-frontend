@@ -1,6 +1,35 @@
 import type { Invoice } from "@/components/dashboard/invoices-table"
 
 // ========================
+// Customer Currency Mapping (Document Currency)
+// ========================
+export interface CustomerCurrencyMapping {
+  customer: string
+  documentCurrency: string // Customer's transaction currency (e.g., AUD for ANZ)
+}
+
+export const customerCurrencyMappings: CustomerCurrencyMapping[] = [
+  { customer: "Acme Corp", documentCurrency: "USD" },
+  { customer: "TechStart Inc", documentCurrency: "USD" },
+  { customer: "Enterprise Co", documentCurrency: "AUD" },
+  { customer: "Global Systems", documentCurrency: "EUR" },
+  { customer: "Innovation Labs", documentCurrency: "USD" },
+  { customer: "Tech Solutions", documentCurrency: "SGD" },
+  { customer: "DataCorp Inc", documentCurrency: "INR" },
+  { customer: "CloudNet Services", documentCurrency: "GBP" },
+]
+
+// ========================
+// Enrich invoices with document currency
+// ========================
+export function enrichInvoicesWithDocumentCurrency(invoices: Invoice[]): Invoice[] {
+  return invoices.map((invoice) => ({
+    ...invoice,
+    documentCurrency: getCustomerDocumentCurrency(invoice.customer),
+  }))
+}
+
+// ========================
 // Ownership Mapping
 // ========================
 export interface OwnershipMapping {

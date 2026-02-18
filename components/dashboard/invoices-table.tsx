@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
+import { formatCurrency } from "@/lib/utils"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -70,6 +71,7 @@ export interface Invoice {
   penalInterest: boolean
   overdue: boolean
   reasonForOverdue: string
+  documentCurrency?: string
 }
 
 interface InvoicesTableProps {
@@ -139,10 +141,11 @@ export function InvoicesTable({
     currentPage * itemsPerPage
   )
 
-  const formatCurrency = (value: number) => {
+  const formatCurrency = (value: number, currency?: string) => {
+    // Use invoice's document currency if available, otherwise default to INR
     return new Intl.NumberFormat("en-IN", {
       style: "currency",
-      currency: "INR",
+      currency: currency || "INR",
       minimumFractionDigits: 0,
     }).format(value)
   }
@@ -216,15 +219,15 @@ export function InvoicesTable({
                 </TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(invoice.invoiceDate)}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(invoice.invoiceProcessingDate)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.value)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.value, invoice.documentCurrency)}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(invoice.firstFollowUpScheduled)}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(invoice.firstFollowUpActual)}</TableCell>
                 <TableCell className="whitespace-nowrap">{formatDate(invoice.subsequentFollowUpActual)}</TableCell>
                 <TableCell className="whitespace-nowrap">{invoice.previousOutstandingInvoiceNo || "-"}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">
-                  {invoice.previousOutstandingAmount > 0 ? formatCurrency(invoice.previousOutstandingAmount) : "-"}
+                  {invoice.previousOutstandingAmount > 0 ? formatCurrency(invoice.previousOutstandingAmount, invoice.documentCurrency) : "-"}
                 </TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.collectionTarget)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.collectionTarget, invoice.documentCurrency)}</TableCell>
                 <TableCell className="text-right whitespace-nowrap">{invoice.creditPeriod} days</TableCell>
                 <TableCell className="whitespace-nowrap">
                   <Badge variant="secondary" className={invoice.penalInterest ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-muted text-muted-foreground hover:bg-muted"}>
@@ -336,7 +339,7 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Value</p>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.value)}</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.value, selectedInvoice.documentCurrency)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Invoice Date</p>
@@ -352,7 +355,7 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Collection Target</p>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.collectionTarget)}</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.collectionTarget, selectedInvoice.documentCurrency)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Penal Interest</p>
@@ -380,7 +383,7 @@ export function InvoicesTable({
                     </div>
                     <div>
                       <p className="text-sm text-muted-foreground">Previous Outstanding Amount</p>
-                      <p className="font-medium text-destructive">{formatCurrency(selectedInvoice.previousOutstandingAmount)}</p>
+                      <p className="font-medium text-destructive">{formatCurrency(selectedInvoice.previousOutstandingAmount, selectedInvoice.documentCurrency)}</p>
                     </div>
                   </>
                 )}
