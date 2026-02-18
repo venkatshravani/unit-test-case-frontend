@@ -152,17 +152,17 @@ export default function Dashboard() {
         </div>
 
         {/* Charts Row with AI Insights */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
-                <AgingBucketsChart data={agingData} />
-              </div>
-              <div className="lg:col-span-1">
-                <CashflowForecastChart invoices={filteredInvoices} />
-              </div>
-              <div className="lg:col-span-1">
-                <AICollectionInsights invoices={filteredInvoices} />
-              </div>
-            </div>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <AgingBucketsChart data={agingData} />
+          </div>
+          <div className="lg:col-span-1">
+            <CashflowForecastChart invoices={filteredInvoices} />
+          </div>
+          <div className="lg:col-span-1">
+            <AICollectionInsights invoices={filteredInvoices} />
+          </div>
+        </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
