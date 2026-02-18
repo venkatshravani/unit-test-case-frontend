@@ -26,7 +26,7 @@ import { Badge } from "@/components/ui/badge"
 import { Checkbox } from "@/components/ui/checkbox"
 import { CalendarIcon, RotateCcwIcon, UsersIcon, CheckIcon } from "lucide-react"
 import { format } from "date-fns"
-import { useState, useMemo } from "react"
+import { useState, useMemo, useEffect } from "react"
 import { cn } from "@/lib/utils"
 import type { DateRange } from "react-day-picker"
 import {
@@ -61,6 +61,32 @@ export function GlobalFilters({ onFilterChange }: GlobalFiltersProps) {
   })
 
   const [ownerPopoverOpen, setOwnerPopoverOpen] = useState(false)
+  const [entities, setEntities] = useState<Array<{ value: string; label: string }>>([
+    { value: "all", label: "All Entities" },
+  ])
+  const [isLoadingEntities, setIsLoadingEntities] = useState(false)
+
+  // Load entities from API on mount
+  useEffect(() => {
+    const loadEntities = async () => {
+      try {
+        setIsLoadingEntities(true)
+        const response = await fetch("/api/dashboard-data?action=metadata")
+        const data = await response.json()
+        if (data.entities) {
+          setEntities(data.entities)
+        }
+      } catch (error) {
+        console.error("[v0] Failed to load entities:", error)
+      } finally {
+        setIsLoadingEntities(false)
+      }
+    }
+    loadEntities()
+  }, [])
+
+  // Available currencies - USD and INR only
+  const availableCurrencies = ["USD", "INR"]
 
   // Derive available portfolio owners based on role and BU filters
   const availableOwners = useMemo(() => {
@@ -141,15 +167,17 @@ export function GlobalFilters({ onFilterChange }: GlobalFiltersProps) {
       <Select
         value={filters.entity}
         onValueChange={(value) => updateFilter("entity", value)}
+        disabled={isLoadingEntities}
       >
         <SelectTrigger className="w-[150px]">
-          <SelectValue placeholder="Legal Entity" />
+          <SelectValue placeholder={isLoadingEntities ? "Loading..." : "Legal Entity"} />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="all">All Entities</SelectItem>
-          <SelectItem value="entity-1">Corp Inc.</SelectItem>
-          <SelectItem value="entity-2">Global Ltd.</SelectItem>
-          <SelectItem value="entity-3">Tech GmbH</SelectItem>
+          {entities.map((entity) => (
+            <SelectItem key={entity.value} value={entity.value}>
+              {entity.label}
+            </SelectItem>
+          ))}
         </SelectContent>
       </Select>
 
