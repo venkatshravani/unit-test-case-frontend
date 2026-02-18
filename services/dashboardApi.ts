@@ -1,7 +1,7 @@
 // Dashboard API Service
-// Replace these URLs with your actual API endpoints
+// Configured to work with backend API at http://127.0.0.1:8000/api/v1/dashboard
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:3001/api';
+const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://127.0.0.1:8000/api/v1';
 
 export const dashboardApi = {
   // Fetch summary/KPI data
@@ -11,11 +11,10 @@ export const dashboardApi = {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
-          // Add auth headers if needed
-          // 'Authorization': `Bearer ${token}`
         },
+        credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to fetch summary');
+      if (!response.ok) throw new Error(`Summary API error: ${response.status}`);
       return await response.json();
     } catch (error) {
       console.error('Summary API error:', error);
@@ -31,8 +30,9 @@ export const dashboardApi = {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to fetch invoices');
+      if (!response.ok) throw new Error(`Invoices API error: ${response.status}`);
       return await response.json();
     } catch (error) {
       console.error('Invoices API error:', error);
@@ -48,8 +48,9 @@ export const dashboardApi = {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to fetch aging data');
+      if (!response.ok) throw new Error(`Aging API error: ${response.status}`);
       return await response.json();
     } catch (error) {
       console.error('Aging API error:', error);
@@ -65,8 +66,9 @@ export const dashboardApi = {
         headers: {
           'Content-Type': 'application/json',
         },
+        credentials: 'include',
       });
-      if (!response.ok) throw new Error('Failed to fetch forecast');
+      if (!response.ok) throw new Error(`Forecast API error: ${response.status}`);
       return await response.json();
     } catch (error) {
       console.error('Forecast API error:', error);
