@@ -7,6 +7,7 @@ import { KPICards } from "@/components/dashboard/kpi-cards"
 import { AgingBucketsChart } from "@/components/dashboard/aging-buckets-chart"
 import { CashflowForecastChart } from "@/components/dashboard/cashflow-forecast-chart"
 import { InvoicesTable, type Invoice } from "@/components/dashboard/invoices-table"
+import { CustomerAgingSummary } from "@/components/dashboard/customer-aging-summary"
 import { RemindersTab } from "@/components/dashboard/reminders-tab"
 import { CallsTab } from "@/components/dashboard/calls-tab"
 import { QueriesTab } from "@/components/dashboard/queries-tab"
@@ -42,6 +43,7 @@ export default function Dashboard() {
   const [activeTab, setActiveTab] = useState("invoices")
   const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
   const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
+  const [showDetailedInvoices, setShowDetailedInvoices] = useState(false)
   // Enrich invoices with document currency on load
   const [invoiceData, setInvoiceData] = useState<Invoice[]>(() => 
     enrichInvoicesWithDocumentCurrency(allInvoices)
@@ -216,7 +218,23 @@ export default function Dashboard() {
           </TabsList>
 
           <TabsContent value="invoices" className="mt-4">
-            <InvoicesTable invoices={filteredInvoices} onUpdateInvoice={handleUpdateInvoice} />
+            {!showDetailedInvoices ? (
+              <CustomerAgingSummary 
+                invoices={filteredInvoices} 
+                currency={filters.currency}
+                onCustomerSelect={() => setShowDetailedInvoices(true)}
+              />
+            ) : (
+              <div className="space-y-4">
+                <button
+                  onClick={() => setShowDetailedInvoices(false)}
+                  className="text-sm text-primary hover:underline mb-4"
+                >
+                  ← Back to Customer Summary
+                </button>
+                <InvoicesTable invoices={filteredInvoices} onUpdateInvoice={handleUpdateInvoice} />
+              </div>
+            )}
           </TabsContent>
 
           <TabsContent value="reminders" className="mt-4">
