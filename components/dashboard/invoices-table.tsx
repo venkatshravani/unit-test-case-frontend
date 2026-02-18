@@ -57,21 +57,42 @@ export interface Invoice {
   id: string
   collectionAgent: string
   customer: string
+  customerAccount?: string
+  customerGroup?: string
   invoiceNo: string
   invoiceDate: string
   invoiceProcessingDate: string
+  dueDate?: string
   value: number
+  previousOutstandingAmount: number
+  balance?: number
+  accountingCurrencyBalance?: number
+  reportingCurrencyBalance?: number
+  description?: string
   firstFollowUpScheduled: string
   firstFollowUpActual: string
   subsequentFollowUpActual: string
   previousOutstandingInvoiceNo: string
-  previousOutstandingAmount: number
   collectionTarget: number
   creditPeriod: number
   penalInterest: boolean
   overdue: boolean
   reasonForOverdue: string
   documentCurrency?: string
+  accountingCurrency?: string
+  reportingCurrency?: string
+  project?: string
+  vendor?: string
+  worker?: string
+  onsiteOffshore?: string
+  revisedOverdueBucket?: string
+  closedDate?: string
+  company?: string
+  asapla?: string
+  customerReferenceSoFo?: string
+  businessUnit?: string
+  costCenter?: string
+  geo?: string
 }
 
 interface InvoicesTableProps {
@@ -318,66 +339,108 @@ export function InvoicesTable({
 
           {selectedInvoice && (
             <div className="space-y-6">
-              {/* Invoice Summary */}
+              {/* Base Data Summary */}
               <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-muted/50 rounded-lg">
                 <div>
-                  <p className="text-sm text-muted-foreground">Collection Agent</p>
-                  <p className="font-medium">{selectedInvoice.collectionAgent}</p>
+                  <p className="text-sm text-muted-foreground">Customer Account</p>
+                  <p className="font-medium">{selectedInvoice.customerAccount || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Customer</p>
+                  <p className="text-sm text-muted-foreground">Customer Name</p>
                   <p className="font-medium">{selectedInvoice.customer}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Value</p>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.value, selectedInvoice.documentCurrency)}</p>
+                  <p className="text-sm text-muted-foreground">Customer Group</p>
+                  <p className="font-medium">{selectedInvoice.customerGroup || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Voucher</p>
+                  <p className="font-medium text-primary">{selectedInvoice.invoiceNo}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Invoice Date</p>
                   <p className="font-medium">{formatDate(selectedInvoice.invoiceDate)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Processing Date</p>
-                  <p className="font-medium">{formatDate(selectedInvoice.invoiceProcessingDate)}</p>
+                  <p className="text-sm text-muted-foreground">Due Date</p>
+                  <p className="font-medium">{selectedInvoice.dueDate ? formatDate(selectedInvoice.dueDate) : formatDate(selectedInvoice.invoiceDate)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Credit Period</p>
-                  <p className="font-medium">{selectedInvoice.creditPeriod} days</p>
+                  <p className="text-sm text-muted-foreground">Currency</p>
+                  <p className="font-medium">{selectedInvoice.documentCurrency || "USD"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Collection Target</p>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.collectionTarget, selectedInvoice.documentCurrency)}</p>
+                  <p className="text-sm text-muted-foreground">Amount in Transaction</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.value, selectedInvoice.documentCurrency)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Penal Interest</p>
-                  <Badge variant="secondary" className={selectedInvoice.penalInterest ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-muted text-muted-foreground hover:bg-muted"}>
-                    {selectedInvoice.penalInterest ? "Yes" : "No"}
-                  </Badge>
+                  <p className="text-sm text-muted-foreground">Balance</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.balance || selectedInvoice.value, selectedInvoice.documentCurrency)}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Overdue</p>
-                  <Badge variant="secondary" className={selectedInvoice.overdue ? "bg-red-100 text-red-800 hover:bg-red-100" : "bg-green-100 text-green-800 hover:bg-green-100"}>
-                    {selectedInvoice.overdue ? "Yes" : "No"}
-                  </Badge>
+                  <p className="text-sm text-muted-foreground">Accounting Currency Balance</p>
+                  <p className="font-medium">{selectedInvoice.accountingCurrencyBalance ? formatCurrency(selectedInvoice.accountingCurrencyBalance, selectedInvoice.accountingCurrency || "USD") : "-"}</p>
                 </div>
-                {selectedInvoice.overdue && selectedInvoice.reasonForOverdue && (
-                  <div className="col-span-2 md:col-span-3">
-                    <p className="text-sm text-muted-foreground">Reason for Overdue</p>
-                    <p className="font-medium text-destructive">{selectedInvoice.reasonForOverdue}</p>
-                  </div>
-                )}
-                {selectedInvoice.previousOutstandingInvoiceNo && (
-                  <>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Previous Outstanding Invoice</p>
-                      <p className="font-medium">{selectedInvoice.previousOutstandingInvoiceNo}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-muted-foreground">Previous Outstanding Amount</p>
-                      <p className="font-medium text-destructive">{formatCurrency(selectedInvoice.previousOutstandingAmount, selectedInvoice.documentCurrency)}</p>
-                    </div>
-                  </>
-                )}
+                <div>
+                  <p className="text-sm text-muted-foreground">Reporting Currency Balance</p>
+                  <p className="font-medium">{selectedInvoice.reportingCurrencyBalance ? formatCurrency(selectedInvoice.reportingCurrencyBalance, selectedInvoice.reportingCurrency || "USD") : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Description</p>
+                  <p className="font-medium text-sm">{selectedInvoice.description || "-"}</p>
+                </div>
+              </div>
+
+              {/* Additional Details */}
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-4 p-4 bg-background border border-border rounded-lg">
+                <div>
+                  <p className="text-sm text-muted-foreground">Project</p>
+                  <p className="font-medium text-sm">{selectedInvoice.project || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Business Unit</p>
+                  <p className="font-medium text-sm">{selectedInvoice.businessUnit || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Cost Center</p>
+                  <p className="font-medium text-sm">{selectedInvoice.costCenter || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Vendor</p>
+                  <p className="font-medium text-sm">{selectedInvoice.vendor || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Worker</p>
+                  <p className="font-medium text-sm">{selectedInvoice.worker || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Onsite/Offshore</p>
+                  <p className="font-medium text-sm">{selectedInvoice.onsiteOffshore || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Revised Overdue Bucket</p>
+                  <p className="font-medium text-sm">{selectedInvoice.revisedOverdueBucket || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Geo</p>
+                  <p className="font-medium text-sm">{selectedInvoice.geo || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Company</p>
+                  <p className="font-medium text-sm">{selectedInvoice.company || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Customer Reference SO-FO</p>
+                  <p className="font-medium text-sm">{selectedInvoice.customerReferenceSoFo || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Asapla Document</p>
+                  <p className="font-medium text-sm">{selectedInvoice.asapla || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-sm text-muted-foreground">Closed Date</p>
+                  <p className="font-medium text-sm">{selectedInvoice.closedDate ? formatDate(selectedInvoice.closedDate) : "-"}</p>
+                </div>
               </div>
 
               {/* Follow-Up Section */}
