@@ -20,6 +20,14 @@ export const customerCurrencyMappings: CustomerCurrencyMapping[] = [
 ]
 
 // ========================
+// Get customer's document currency
+// ========================
+export function getCustomerDocumentCurrency(customer: string): string {
+  const mapping = customerCurrencyMappings.find((m) => m.customer === customer)
+  return mapping?.documentCurrency || "USD"
+}
+
+// ========================
 // Enrich invoices with document currency
 // ========================
 export function enrichInvoicesWithDocumentCurrency(invoices: Invoice[]): Invoice[] {
