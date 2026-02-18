@@ -54,7 +54,7 @@ export function GlobalFilters({ onFilterChange }: GlobalFiltersProps) {
     businessUnit: "all",
     entity: "all",
     customer: "all",
-    currency: "INR",
+    currency: "USD",
     role: "all",
     selectedOwners: [],
     dateRange: undefined,
@@ -109,7 +109,7 @@ export function GlobalFilters({ onFilterChange }: GlobalFiltersProps) {
       businessUnit: "all",
       entity: "all",
       customer: "all",
-      currency: "INR",
+      currency: "USD",
       role: "all",
       selectedOwners: [],
       dateRange: undefined,
@@ -258,10 +258,8 @@ export function GlobalFilters({ onFilterChange }: GlobalFiltersProps) {
           <SelectValue placeholder="Currency" />
         </SelectTrigger>
         <SelectContent>
-          <SelectItem value="INR">INR</SelectItem>
           <SelectItem value="USD">USD</SelectItem>
-          <SelectItem value="EUR">EUR</SelectItem>
-          <SelectItem value="GBP">GBP</SelectItem>
+          <SelectItem value="INR">INR</SelectItem>
         </SelectContent>
       </Select>
 

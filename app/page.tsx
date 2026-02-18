@@ -48,7 +48,7 @@ export default function Dashboard() {
     businessUnit: "all",
     entity: "all",
     customer: "all",
-    currency: "INR",
+    currency: "USD",
     role: "all",
     selectedOwners: [],
     dateRange: undefined,
