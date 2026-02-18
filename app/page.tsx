@@ -21,11 +21,9 @@ import {
   MessageSquareIcon,
   BarChart3Icon,
   BriefcaseIcon,
-  Loader2Icon,
-  AlertCircleIcon,
 } from "lucide-react"
-import { useDashboard } from "@/hooks/use-dashboard"
 import {
+  allInvoices,
   reminderRules,
   sentReminders,
   calls,
@@ -38,24 +36,13 @@ import {
   computeAgingBuckets,
   computeCashflow,
   computePortfolioPerformance,
-  allInvoices,
 } from "@/lib/data"
-import { Alert, AlertDescription } from "@/components/ui/alert"
-import { useEffect } from "react"
 
 export default function Dashboard() {
-  const { data: dashboardData, loading, error } = useDashboard()
   const [activeTab, setActiveTab] = useState("invoices")
   const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
   const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
   const [invoiceData, setInvoiceData] = useState<Invoice[]>(allInvoices)
-
-  // Update invoice data when API data is loaded
-  useEffect(() => {
-    if (dashboardData?.invoices) {
-      setInvoiceData(dashboardData.invoices)
-    }
-  }, [dashboardData?.invoices])
 
   // Filter state lifted from GlobalFilters
   const [filters, setFilters] = useState<FilterState>({
@@ -93,27 +80,9 @@ export default function Dashboard() {
   }, [invoiceData, filters.businessUnit, filters.selectedOwners, filters.customer])
 
   // Dynamically recompute KPIs, aging, cashflow from filtered data
-  const kpiData = useMemo(() => {
-    if (dashboardData?.summary) {
-      return dashboardData.summary
-    }
-    return computeKPIs(filteredInvoices)
-  }, [filteredInvoices, dashboardData?.summary])
-
-  const agingData = useMemo(() => {
-    if (dashboardData?.aging) {
-      return dashboardData.aging
-    }
-    return computeAgingBuckets(filteredInvoices)
-  }, [filteredInvoices, dashboardData?.aging])
-
-  const cashflowData = useMemo(() => {
-    if (dashboardData?.forecast) {
-      return dashboardData.forecast
-    }
-    return computeCashflow(filteredInvoices)
-  }, [filteredInvoices, dashboardData?.forecast])
-
+  const kpiData = useMemo(() => computeKPIs(filteredInvoices), [filteredInvoices])
+  const agingData = useMemo(() => computeAgingBuckets(filteredInvoices), [filteredInvoices])
+  const cashflowData = useMemo(() => computeCashflow(filteredInvoices), [filteredInvoices])
   const portfolioData = useMemo(() => computePortfolioPerformance(invoiceData), [invoiceData])
 
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -157,68 +126,45 @@ export default function Dashboard() {
       </header>
 
       <main className="container mx-auto px-4 py-6 space-y-6">
-        {/* Loading State */}
-        {loading && (
-          <div className="flex items-center justify-center py-12">
-            <div className="text-center">
-              <Loader2Icon className="h-8 w-8 animate-spin mx-auto mb-2 text-primary" />
-              <p className="text-muted-foreground">Loading dashboard data...</p>
-            </div>
+        {/* Data Status Banner */}
+        <DataStatusBanner />
+
+        {/* Global Filters */}
+        <GlobalFilters onFilterChange={handleFilterChange} />
+
+        {/* Active View Context Label */}
+        <div className="text-sm text-muted-foreground px-4 py-2 bg-muted/30 rounded-md border border-muted">
+          <span className="font-medium">Active View:</span>
+          {filters.entity !== "all" && <span> {filters.entity} Entity</span>}
+          {filters.businessUnit !== "all" && <span> | BU: {filters.businessUnit}</span>}
+          {filters.selectedOwners.length > 0 && (
+            <span> | Portfolio Owner: {filters.selectedOwners.join(", ")}</span>
+          )}
+          {filters.entity === "all" && filters.businessUnit === "all" && filters.selectedOwners.length === 0 && (
+            <span> All Entities | All Business Units | All Owners</span>
+          )}
+        </div>
+
+        {/* KPI Cards with Header */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-muted-foreground px-1">
+            {filters.entity !== "all" ? `${filters.entity}` : "All Entities"} - Key Collection Metrics
+          </p>
+          <KPICards data={kpiData} />
+        </div>
+
+        {/* Charts Row with AI Insights */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <AgingBucketsChart data={agingData} />
           </div>
-        )}
-
-        {/* Error State */}
-        {error && !loading && (
-          <Alert variant="destructive">
-            <AlertCircleIcon className="h-4 w-4" />
-            <AlertDescription>
-              Failed to load dashboard: {error}. Check your API configuration and network connection.
-            </AlertDescription>
-          </Alert>
-        )}
-
-        {/* Dashboard Content */}
-        {!loading && !error && (
-          <>
-            {/* Data Status Banner */}
-            <DataStatusBanner />
-
-            {/* Global Filters */}
-            <GlobalFilters onFilterChange={handleFilterChange} />
-
-            {/* Active View Context Label */}
-            <div className="text-sm text-muted-foreground px-4 py-2 bg-muted/30 rounded-md border border-muted">
-              <span className="font-medium">Active View:</span>
-              {filters.entity !== "all" && <span> {filters.entity} Entity</span>}
-              {filters.businessUnit !== "all" && <span> | BU: {filters.businessUnit}</span>}
-              {filters.selectedOwners.length > 0 && (
-                <span> | Portfolio Owner: {filters.selectedOwners.join(", ")}</span>
-              )}
-              {filters.entity === "all" && filters.businessUnit === "all" && filters.selectedOwners.length === 0 && (
-                <span> All Entities | All Business Units | All Owners</span>
-              )}
-            </div>
-
-            {/* KPI Cards with Header */}
-            <div className="space-y-3">
-              <p className="text-sm font-semibold text-muted-foreground px-1">
-                {filters.entity !== "all" ? `${filters.entity}` : "All Entities"} - Key Collection Metrics
-              </p>
-              <KPICards data={kpiData} />
-            </div>
-
-            {/* Charts Row with AI Insights */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-1">
-                <AgingBucketsChart data={agingData} />
-              </div>
-              <div className="lg:col-span-1">
-                <CashflowForecastChart data={cashflowData} />
-              </div>
-              <div className="lg:col-span-1">
-                <AICollectionInsights invoices={filteredInvoices} />
-              </div>
-            </div>
+          <div className="lg:col-span-1">
+            <CashflowForecastChart data={cashflowData} />
+          </div>
+          <div className="lg:col-span-1">
+            <AICollectionInsights invoices={filteredInvoices} />
+          </div>
+        </div>
 
         {/* Tabs Navigation */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
@@ -302,8 +248,6 @@ export default function Dashboard() {
             <ReportsTab />
           </TabsContent>
         </Tabs>
-          </>
-        )}
       </main>
     </div>
   )
