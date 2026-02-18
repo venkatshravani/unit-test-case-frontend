@@ -95,6 +95,7 @@ export default function Dashboard() {
 
   // Dynamically recompute KPIs, aging, cashflow from filtered data
   const kpiData = useMemo(() => computeKPIs(filteredInvoices), [filteredInvoices])
+  const agingData = useMemo(() => computeAgingBuckets(filteredInvoices), [filteredInvoices])
   const portfolioData = useMemo(() => computePortfolioPerformance(invoiceData), [invoiceData])
 
   const currentDate = new Date().toLocaleDateString("en-US", {
