@@ -119,6 +119,31 @@ export function filterInvoicesByBU(invoices: Invoice[], bu: string): Invoice[] {
 }
 
 // ========================
+// Apply role-based BU restrictions
+// ========================
+export function applyRoleBasedFilters(invoices: Invoice[], currentUser: string): Invoice[] {
+  const userHierarchy = hierarchyMappings.find((h) => h.person === currentUser)
+  
+  // If user is Girish (BU Head), show only RMD3 data
+  if (currentUser === "Girish" && userHierarchy?.role === "bu_head") {
+    return invoices.filter((inv) => {
+      const mapping = ownershipMappings.find((m) => m.customer === inv.customer)
+      return mapping?.bu === "RMD"
+    })
+  }
+  
+  // For other BU heads, show their BU only
+  if (userHierarchy?.role === "bu_head" && userHierarchy.bu !== "ALL") {
+    return invoices.filter((inv) => {
+      const mapping = ownershipMappings.find((m) => m.customer === inv.customer)
+      return mapping?.bu === userHierarchy.bu
+    })
+  }
+  
+  return invoices
+}
+
+// ========================
 // Compute KPIs dynamically from filtered invoices
 // ========================
 export function computeKPIs(invoices: Invoice[]) {
@@ -177,39 +202,62 @@ export function computeAgingBuckets(invoices: Invoice[]) {
 }
 
 // ========================
-// Compute cashflow forecast from filtered invoices
+// Compute cashflow forecast from filtered invoices (12 weeks)
 // ========================
-export function computeCashflow(invoices: Invoice[]) {
+export function computeCashflow(invoices: Invoice[], forecastType: "monthly" | "quarterly" = "monthly") {
   const totalValue = invoices.reduce((sum, inv) => sum + inv.value, 0)
-  const confirmedPct = [0.15, 0.3, 0.45, 0.5]
-  const projectedPct = [0.2, 0.4, 0.55, 0.65]
+  
+  if (forecastType === "monthly") {
+    // 4 weeks (1 month) view
+    const confirmedPct = [0.15, 0.3, 0.45, 0.5]
+    const projectedPct = [0.2, 0.4, 0.55, 0.65]
 
-  return [
-    {
-      week: "Week 1",
-      confirmed: Math.round(totalValue * confirmedPct[0]),
-      projected: Math.round(totalValue * projectedPct[0]),
-      confidenceHigh: Math.round(totalValue * projectedPct[0] * 1.15),
-    },
-    {
-      week: "Week 2",
-      confirmed: Math.round(totalValue * confirmedPct[1]),
-      projected: Math.round(totalValue * projectedPct[1]),
-      confidenceHigh: Math.round(totalValue * projectedPct[1] * 1.15),
-    },
-    {
-      week: "Week 3",
-      confirmed: Math.round(totalValue * confirmedPct[2]),
-      projected: Math.round(totalValue * projectedPct[2]),
-      confidenceHigh: Math.round(totalValue * projectedPct[2] * 1.15),
-    },
-    {
-      week: "Week 4",
-      confirmed: Math.round(totalValue * confirmedPct[3]),
-      projected: Math.round(totalValue * projectedPct[3]),
-      confidenceHigh: Math.round(totalValue * projectedPct[3] * 1.15),
-    },
-  ]
+    return [
+      {
+        week: "Week 1",
+        confirmed: Math.round(totalValue * confirmedPct[0]),
+        projected: Math.round(totalValue * projectedPct[0]),
+        confidenceHigh: Math.round(totalValue * projectedPct[0] * 1.15),
+      },
+      {
+        week: "Week 2",
+        confirmed: Math.round(totalValue * confirmedPct[1]),
+        projected: Math.round(totalValue * projectedPct[1]),
+        confidenceHigh: Math.round(totalValue * projectedPct[1] * 1.15),
+      },
+      {
+        week: "Week 3",
+        confirmed: Math.round(totalValue * confirmedPct[2]),
+        projected: Math.round(totalValue * projectedPct[2]),
+        confidenceHigh: Math.round(totalValue * projectedPct[2] * 1.15),
+      },
+      {
+        week: "Week 4",
+        confirmed: Math.round(totalValue * confirmedPct[3]),
+        projected: Math.round(totalValue * projectedPct[3]),
+        confidenceHigh: Math.round(totalValue * projectedPct[3] * 1.15),
+      },
+    ]
+  } else {
+    // 12 weeks (3 months / quarterly) view
+    const confirmedPct = [0.08, 0.12, 0.15, 0.18, 0.22, 0.26, 0.3, 0.35, 0.4, 0.45, 0.48, 0.5]
+    const projectedPct = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.42, 0.5, 0.55, 0.62, 0.63, 0.65]
+
+    return [
+      { week: "Week 1", confirmed: Math.round(totalValue * confirmedPct[0]), projected: Math.round(totalValue * projectedPct[0]), confidenceHigh: Math.round(totalValue * projectedPct[0] * 1.15) },
+      { week: "Week 2", confirmed: Math.round(totalValue * confirmedPct[1]), projected: Math.round(totalValue * projectedPct[1]), confidenceHigh: Math.round(totalValue * projectedPct[1] * 1.15) },
+      { week: "Week 3", confirmed: Math.round(totalValue * confirmedPct[2]), projected: Math.round(totalValue * projectedPct[2]), confidenceHigh: Math.round(totalValue * projectedPct[2] * 1.15) },
+      { week: "Week 4", confirmed: Math.round(totalValue * confirmedPct[3]), projected: Math.round(totalValue * projectedPct[3]), confidenceHigh: Math.round(totalValue * projectedPct[3] * 1.15) },
+      { week: "Week 5", confirmed: Math.round(totalValue * confirmedPct[4]), projected: Math.round(totalValue * projectedPct[4]), confidenceHigh: Math.round(totalValue * projectedPct[4] * 1.15) },
+      { week: "Week 6", confirmed: Math.round(totalValue * confirmedPct[5]), projected: Math.round(totalValue * projectedPct[5]), confidenceHigh: Math.round(totalValue * projectedPct[5] * 1.15) },
+      { week: "Week 7", confirmed: Math.round(totalValue * confirmedPct[6]), projected: Math.round(totalValue * projectedPct[6]), confidenceHigh: Math.round(totalValue * projectedPct[6] * 1.15) },
+      { week: "Week 8", confirmed: Math.round(totalValue * confirmedPct[7]), projected: Math.round(totalValue * projectedPct[7]), confidenceHigh: Math.round(totalValue * projectedPct[7] * 1.15) },
+      { week: "Week 9", confirmed: Math.round(totalValue * confirmedPct[8]), projected: Math.round(totalValue * projectedPct[8]), confidenceHigh: Math.round(totalValue * projectedPct[8] * 1.15) },
+      { week: "Week 10", confirmed: Math.round(totalValue * confirmedPct[9]), projected: Math.round(totalValue * projectedPct[9]), confidenceHigh: Math.round(totalValue * projectedPct[9] * 1.15) },
+      { week: "Week 11", confirmed: Math.round(totalValue * confirmedPct[10]), projected: Math.round(totalValue * projectedPct[10]), confidenceHigh: Math.round(totalValue * projectedPct[10] * 1.15) },
+      { week: "Week 12", confirmed: Math.round(totalValue * confirmedPct[11]), projected: Math.round(totalValue * projectedPct[11]), confidenceHigh: Math.round(totalValue * projectedPct[11] * 1.15) },
+    ]
+  }
 }
 
 // ========================

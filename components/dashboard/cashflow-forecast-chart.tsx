@@ -1,6 +1,8 @@
 "use client"
 
+import { useState } from "react"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
 import {
   Line,
   LineChart,
@@ -50,22 +52,49 @@ const CustomTooltip = ({ active, payload, label }: { active?: boolean; payload?:
 }
 
 export function CashflowForecastChart({ data }: CashflowForecastChartProps) {
+  const [forecastType, setForecastType] = useState<"monthly" | "quarterly">("quarterly")
+  
+  // Filter data based on forecast type
+  const displayData = forecastType === "monthly" ? data.slice(0, 4) : data
+
   const chartColors = {
     confirmed: "#f97316",
     projected: "#3b82f6",
     confidence: "rgba(59, 130, 246, 0.1)",
   }
 
+  const title = forecastType === "monthly" ? "Cashflow Forecast (4 Weeks)" : "Cashflow Forecast (12 Weeks)"
+
   return (
     <Card className="h-full shadow-sm">
       <CardHeader className="pb-2">
-        <CardTitle className="text-base font-semibold">Cashflow Forecast (12 Weeks)</CardTitle>
+        <div className="flex items-center justify-between">
+          <CardTitle className="text-base font-semibold">{title}</CardTitle>
+          <div className="flex gap-2">
+            <Button
+              variant={forecastType === "monthly" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setForecastType("monthly")}
+              className="text-xs h-8"
+            >
+              Month
+            </Button>
+            <Button
+              variant={forecastType === "quarterly" ? "default" : "outline"}
+              size="sm"
+              onClick={() => setForecastType("quarterly")}
+              className="text-xs h-8"
+            >
+              Quarter
+            </Button>
+          </div>
+        </div>
       </CardHeader>
       <CardContent className="pt-0">
         <div className="h-[280px]">
           <ResponsiveContainer width="100%" height="100%">
             <ComposedChart
-              data={data}
+              data={displayData}
               margin={{ top: 20, right: 30, left: 20, bottom: 5 }}
             >
               <defs>
