@@ -81,6 +81,7 @@ interface InvoicesTableProps {
   onAddNote?: (invoiceId: string) => void
   onTriggerReminder?: (invoiceId: string) => void
   onUpdateInvoice?: (invoiceId: string, updates: { firstFollowUpActual: string; subsequentFollowUpActual: string; notes?: string }) => void
+  hideCollectionAgent?: boolean
 }
 
 export function InvoicesTable({
@@ -90,6 +91,7 @@ export function InvoicesTable({
   onAddNote,
   onTriggerReminder,
   onUpdateInvoice,
+  hideCollectionAgent = false,
 }: InvoicesTableProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [overdueFilter, setOverdueFilter] = useState<string>("all")
@@ -187,7 +189,9 @@ export function InvoicesTable({
         <Table>
           <TableHeader>
             <TableRow className="bg-muted/50">
-              <TableHead className="font-semibold whitespace-nowrap">Collection Agent</TableHead>
+              {!hideCollectionAgent && (
+                <TableHead className="font-semibold whitespace-nowrap">Collection Agent</TableHead>
+              )}
               <TableHead className="font-semibold whitespace-nowrap">Customer</TableHead>
               <TableHead className="font-semibold whitespace-nowrap">Invoice No</TableHead>
               <TableHead className="font-semibold whitespace-nowrap">Invoice Date</TableHead>
@@ -209,7 +213,9 @@ export function InvoicesTable({
           <TableBody>
             {paginatedInvoices.map((invoice) => (
               <TableRow key={invoice.id} className="hover:bg-muted/30">
-                <TableCell className="whitespace-nowrap">{invoice.collectionAgent}</TableCell>
+                {!hideCollectionAgent && (
+                  <TableCell className="whitespace-nowrap">{invoice.collectionAgent}</TableCell>
+                )}
                 <TableCell className="whitespace-nowrap">{invoice.customer}</TableCell>
                 <TableCell 
                   className="font-medium text-primary cursor-pointer hover:underline whitespace-nowrap"

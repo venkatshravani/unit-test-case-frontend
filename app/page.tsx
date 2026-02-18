@@ -44,6 +44,7 @@ export default function Dashboard() {
   const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
   const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
   const [showDetailedInvoices, setShowDetailedInvoices] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
   // Enrich invoices with document currency on load
   const [invoiceData, setInvoiceData] = useState<Invoice[]>(() => 
     enrichInvoicesWithDocumentCurrency(allInvoices)
@@ -84,9 +85,16 @@ export default function Dashboard() {
     return result
   }, [invoiceData, filters.businessUnit, filters.selectedOwners, filters.customer])
 
+  // Filter invoices by selected customer if in detail view
+  const detailInvoices = useMemo(() => {
+    if (!selectedCustomer) return filteredInvoices
+    return filteredInvoices.filter(
+      (inv) => inv.customer.toLowerCase().replace(/\s+/g, "") === selectedCustomer.toLowerCase().replace(/\s+/g, "")
+    )
+  }, [filteredInvoices, selectedCustomer])
+
   // Dynamically recompute KPIs, aging, cashflow from filtered data
   const kpiData = useMemo(() => computeKPIs(filteredInvoices), [filteredInvoices])
-  const agingData = useMemo(() => computeAgingBuckets(filteredInvoices), [filteredInvoices])
   const portfolioData = useMemo(() => computePortfolioPerformance(invoiceData), [invoiceData])
 
   const currentDate = new Date().toLocaleDateString("en-US", {
@@ -222,17 +230,28 @@ export default function Dashboard() {
               <CustomerAgingSummary 
                 invoices={filteredInvoices} 
                 currency={filters.currency}
-                onCustomerSelect={() => setShowDetailedInvoices(true)}
+                onCustomerSelect={(customer) => {
+                  setSelectedCustomer(customer)
+                  setShowDetailedInvoices(true)
+                }}
               />
             ) : (
               <div className="space-y-4">
                 <button
-                  onClick={() => setShowDetailedInvoices(false)}
+                  onClick={() => {
+                    setShowDetailedInvoices(false)
+                    setSelectedCustomer(null)
+                  }}
                   className="text-sm text-primary hover:underline mb-4"
                 >
                   ← Back to Customer Summary
                 </button>
-                <InvoicesTable invoices={filteredInvoices} onUpdateInvoice={handleUpdateInvoice} />
+                {selectedCustomer && (
+                  <div className="mb-4 p-3 bg-muted rounded-lg">
+                    <p className="text-sm font-medium">Viewing invoices for: <span className="text-primary">{selectedCustomer}</span></p>
+                  </div>
+                )}
+                <InvoicesTable invoices={detailInvoices} onUpdateInvoice={handleUpdateInvoice} hideCollectionAgent={true} />
               </div>
             )}
           </TabsContent>

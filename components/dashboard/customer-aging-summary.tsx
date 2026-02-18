@@ -132,6 +132,9 @@ export function CustomerAgingSummary({
                     className="hover:bg-muted/50 cursor-pointer"
                     onClick={() => {
                       setSelectedCustomer(summary.customer)
+                      const customerInvoices = invoices.filter(
+                        (inv) => inv.customer === summary.customer
+                      )
                       onCustomerSelect?.(summary.customer, customerInvoices)
                     }}
                   >
