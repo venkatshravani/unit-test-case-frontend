@@ -111,7 +111,7 @@ export default function Dashboard() {
       {/* Header */}
       <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
         <div className="container mx-auto px-4 py-4">
-            <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between">
             <div>
               <h1 className="text-2xl font-bold text-foreground">Invoice Collection Dashboard</h1>
               <p className="text-sm text-muted-foreground">
