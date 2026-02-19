@@ -1,165 +1,83 @@
 /**
- * API endpoint to fetch invoice data from Power Apps Base Data table
- * This endpoint aggregates and filters invoice data based on query parameters
+ * API endpoint to fetch invoice data from FastAPI backend
+ * The backend queries the Dataverse cr16e_customeraccounttransaction table
  */
 
 import { NextRequest, NextResponse } from "next/server"
 
-// Mock data structure matching Power Apps Base Data table
-// In production, this would fetch from actual Power Apps API
-const mockBaseData = [
-  {
-    id: "INV-2025-001",
-    customerAccount: "ACC-001",
-    customerName: "Acme Corp",
-    customerGroup: "Large Enterprise",
-    voucher: "INV-2025-001",
-    invoiceDate: "2024-11-15",
-    dueDate: "2024-12-15",
-    currency: "USD",
-    amountInTransaction: 15000000,
-    balance: 15000000,
-    accountingCurrencyBalance: 15000000,
-    reportingCurrencyBalance: 15000000,
-    description: "Consulting Services",
-    project: "$50,000",
-    businessUnit: "RMD",
-    costCenter: "CC-001",
-    vendor: "External Vendor",
-    worker: "John Doe",
-    onsiteOffshore: "Onsite",
-    revisedOverdueBucket: "90+",
-    geo: "NA",
-    company: "Acme Inc",
-    customerReferenceSoFo: "REF-001",
-    asapla: "ASAPLA-001",
-    closedDate: null,
-    agingBucket: "90+",
-    daysOverdue: 65,
-  },
-  {
-    id: "INV-2025-002",
-    customerAccount: "ACC-002",
-    customerName: "TechStart Inc",
-    customerGroup: "Mid-Market",
-    voucher: "INV-2025-002",
-    invoiceDate: "2024-12-01",
-    dueDate: "2025-01-01",
-    currency: "USD",
-    amountInTransaction: 8500000,
-    balance: 8500000,
-    accountingCurrencyBalance: 8500000,
-    reportingCurrencyBalance: 8500000,
-    description: "Software Licenses",
-    project: "$40,000",
-    businessUnit: "CSD",
-    costCenter: "CC-002",
-    vendor: "Tech Vendor",
-    worker: "Jane Smith",
-    onsiteOffshore: "Offshore",
-    revisedOverdueBucket: "61-90",
-    geo: "APAC",
-    company: "TechStart Ltd",
-    customerReferenceSoFo: "REF-002",
-    asapla: "ASAPLA-002",
-    closedDate: null,
-    agingBucket: "61-90",
-    daysOverdue: 48,
-  },
-  {
-    id: "INV-2025-003",
-    customerAccount: "ACC-003",
-    customerName: "Enterprise Co",
-    customerGroup: "Large Enterprise",
-    voucher: "INV-2025-003",
-    invoiceDate: "2025-01-01",
-    dueDate: "2025-02-01",
-    currency: "INR",
-    amountInTransaction: 35000000,
-    balance: 35000000,
-    accountingCurrencyBalance: 35000000,
-    reportingCurrencyBalance: 35000000,
-    description: "Maintenance Support",
-    project: "$75,000",
-    businessUnit: "EAS",
-    costCenter: "CC-003",
-    vendor: "Support Vendor",
-    worker: "Mike Johnson",
-    onsiteOffshore: "Onsite",
-    revisedOverdueBucket: "31-60",
-    geo: "EU",
-    company: "Enterprise Global",
-    customerReferenceSoFo: "REF-003",
-    asapla: "ASAPLA-003",
-    closedDate: null,
-    agingBucket: "31-60",
-    daysOverdue: 17,
-  },
-]
-
-// Extract unique values from data
-function extractUniqueValues(data: typeof mockBaseData, field: string): string[] {
-  const values = new Set<string>()
-  data.forEach((item) => {
-    const value = (item as Record<string, any>)[field]
-    if (value) values.add(value)
-  })
-  return Array.from(values).sort()
-}
+const BACKEND_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000"
 
 export async function GET(request: NextRequest) {
   try {
     const searchParams = request.nextUrl.searchParams
     const action = searchParams.get("action")
-    const bu = searchParams.get("bu")
-    const entity = searchParams.get("entity")
-    const currency = searchParams.get("currency")
+    const businessUnit = searchParams.get("business_unit") || "all"
+    const entity = searchParams.get("entity") || "all"
+    const currency = searchParams.get("currency") || "USD"
 
-    // Return metadata (BUs, Entities)
+    // Return metadata (BUs, Entities, etc.)
     if (action === "metadata") {
+      console.log("[v0] Fetching metadata from backend...")
+      const response = await fetch(
+        `${BACKEND_URL}/api/dashboard-data?action=metadata`,
+        { cache: "no-store" }
+      )
+
+      if (!response.ok) {
+        console.error("[v0] Backend metadata error:", response.status)
+        throw new Error(`Backend error: ${response.status}`)
+      }
+
+      const metadata = await response.json()
+
       return NextResponse.json({
-        businessUnits: [
-          { value: "all", label: "All BUs" },
-          ...extractUniqueValues(mockBaseData, "businessUnit").map((bu) => ({
-            value: bu,
-            label: bu,
-          })),
-        ],
-        entities: [
-          { value: "all", label: "All Entities" },
-          ...extractUniqueValues(mockBaseData, "company").map((entity) => ({
-            value: entity,
-            label: entity,
-          })),
-        ],
+        businessUnits: metadata.business_units || [],
+        entities: metadata.entities || [],
         currencies: ["USD", "INR"],
       })
     }
 
-    // Filter and return invoice data
-    let filteredData = mockBaseData
+    // Fetch and return invoice data from backend
+    console.log(
+      `[v0] Fetching invoices: BU=${businessUnit}, Entity=${entity}, Currency=${currency}`
+    )
 
-    if (bu && bu !== "all") {
-      filteredData = filteredData.filter((item) => item.businessUnit === bu)
-    }
+    const backendUrl = new URL(`${BACKEND_URL}/api/dashboard-data`)
+    backendUrl.searchParams.append("business_unit", businessUnit)
+    backendUrl.searchParams.append("entity", entity)
+    backendUrl.searchParams.append("currency", currency)
 
-    if (entity && entity !== "all") {
-      filteredData = filteredData.filter((item) => item.company === entity)
-    }
-
-    if (currency && currency !== "all") {
-      filteredData = filteredData.filter((item) => item.currency === currency)
-    }
-
-    return NextResponse.json({
-      success: true,
-      data: filteredData,
-      count: filteredData.length,
+    const response = await fetch(backendUrl.toString(), {
+      cache: "no-store",
     })
+
+    if (!response.ok) {
+      console.error("[v0] Backend error:", response.status)
+      throw new Error(`Backend error: ${response.status}`)
+    }
+
+    const backendData = await response.json()
+
+    // Transform backend response to match frontend expectations
+    const transformedData = {
+      success: true,
+      data: backendData.invoices || [],
+      count: backendData.invoices?.length || 0,
+      summary: backendData.summary,
+      currency,
+    }
+
+    return NextResponse.json(transformedData)
   } catch (error) {
     console.error("[v0] API Error:", error)
     return NextResponse.json(
-      { success: false, error: "Failed to fetch dashboard data" },
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch dashboard data",
+      },
       { status: 500 }
     )
   }
