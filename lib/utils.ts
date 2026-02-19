@@ -48,3 +48,58 @@ export function formatNumber(amount: number, currency: string = 'USD'): string {
     }).format(amount)
   }
 }
+
+/**
+ * Format date to readable string
+ * Input: "2024-11-15" or ISO date
+ * Output: "15 Nov 2024"
+ */
+export function formatDate(dateString: string | Date): string {
+  if (!dateString) return "-"
+  
+  try {
+    const date = typeof dateString === 'string' ? new Date(dateString) : dateString
+    
+    if (isNaN(date.getTime())) return "-"
+    
+    return date.toLocaleDateString('en-GB', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+  } catch {
+    return "-"
+  }
+}
+
+/**
+ * Convert amount between currencies
+ * Currently supports USD <-> INR at 1:83 rate
+ */
+export function convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
+  if (fromCurrency === toCurrency || !amount) return amount
+  
+  const USD_TO_INR = 83
+  
+  if (fromCurrency === 'USD' && toCurrency === 'INR') {
+    return Math.round(amount * USD_TO_INR)
+  } else if (fromCurrency === 'INR' && toCurrency === 'USD') {
+    return Math.round(amount / USD_TO_INR)
+  }
+  
+  return amount
+}
+
+/**
+ * Get currency symbol
+ */
+export function getCurrencySymbol(currency: string): string {
+  const symbols: Record<string, string> = {
+    'USD': '$',
+    'INR': '₹',
+    'EUR': '€',
+    'GBP': '£',
+    'AUD': 'A$',
+  }
+  return symbols[currency] || currency
+}
