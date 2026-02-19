@@ -55,44 +55,58 @@ import {
 
 export interface Invoice {
   id: string
-  collectionAgent: string
+  collectionAgent?: string
   customer: string
   customerAccount?: string
   customerGroup?: string
-  invoiceNo: string
+  voucher: string
+  invoice?: string
+  invoiceNo?: string
   invoiceDate: string
-  invoiceProcessingDate: string
+  invoiceProcessingDate?: string
   dueDate?: string
-  value: number
-  previousOutstandingAmount: number
+  value?: number
+  amount?: number
+  previousOutstandingAmount?: number
   balance?: number
   accountingCurrencyBalance?: number
   reportingCurrencyBalance?: number
   description?: string
-  firstFollowUpScheduled: string
-  firstFollowUpActual: string
-  subsequentFollowUpActual: string
-  previousOutstandingInvoiceNo: string
-  collectionTarget: number
-  creditPeriod: number
-  penalInterest: boolean
-  overdue: boolean
-  reasonForOverdue: string
+  firstFollowUpScheduled?: string
+  firstFollowUpActual?: string
+  subsequentFollowUpActual?: string
+  previousOutstandingInvoiceNo?: string
+  collectionTarget?: number
+  creditPeriod?: number
+  penalInterest?: boolean
+  overdue?: boolean
+  reasonForOverdue?: string
   documentCurrency?: string
+  currency?: string
   accountingCurrency?: string
   reportingCurrency?: string
   project?: string
   vendor?: string
   worker?: string
   onsiteOffshore?: string
+  onsite_offshore?: string
   revisedOverdueBucket?: string
+  revised_overdue_bucket?: string
   closedDate?: string
+  closed_date?: string
   company?: string
   asapla?: string
+  axapta_document?: string
   customerReferenceSoFo?: string
+  customer_reference_sofo?: string
   businessUnit?: string
+  business_unit?: string
   costCenter?: string
+  cost_center?: string
   geo?: string
+  email_address?: string
+  credit_terms?: string
+  credit_note?: string
 }
 
 interface InvoicesTableProps {
@@ -148,9 +162,9 @@ export function InvoicesTable({
 
   const filteredInvoices = invoices.filter((invoice) => {
     const matchesSearch =
-      invoice.invoiceNo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.customer.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      invoice.collectionAgent.toLowerCase().includes(searchTerm.toLowerCase())
+      (invoice.invoiceNo || invoice.voucher || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.customer || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (invoice.collectionAgent || "").toLowerCase().includes(searchTerm.toLowerCase())
     const matchesOverdue =
       overdueFilter === "all" ||
       (overdueFilter === "yes" && invoice.overdue) ||
@@ -238,22 +252,22 @@ export function InvoicesTable({
                   className="font-medium text-primary cursor-pointer hover:underline whitespace-nowrap"
                   onClick={() => handleInvoiceClick(invoice)}
                 >
-                  {invoice.invoiceNo}
+                  {invoice.voucher || invoice.invoiceNo || invoice.invoice || "-"}
                 </TableCell>
-                <TableCell className="whitespace-nowrap">{invoice.documentCurrency}</TableCell>
-                <TableCell className="text-right whitespace-nowrap font-medium">{formatCurrency(invoice.value, invoice.documentCurrency)}</TableCell>
-                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.previousOutstandingAmount, invoice.documentCurrency)}</TableCell>
+                <TableCell className="whitespace-nowrap">{invoice.documentCurrency || invoice.currency || "USD"}</TableCell>
+                <TableCell className="text-right whitespace-nowrap font-medium">{formatCurrency(invoice.value || invoice.amount || 0, invoice.documentCurrency || invoice.currency)}</TableCell>
+                <TableCell className="text-right whitespace-nowrap">{formatCurrency(invoice.previousOutstandingAmount || 0, invoice.documentCurrency || invoice.currency)}</TableCell>
                 <TableCell className="whitespace-nowrap text-sm">{formatDate(invoice.invoiceDate)}</TableCell>
-                <TableCell className="whitespace-nowrap text-sm">{formatDate(dueDate.toISOString().split('T')[0])}</TableCell>
-                <TableCell className="whitespace-nowrap text-sm">{invoice.collectionTarget > 0 ? formatCurrency(invoice.collectionTarget, invoice.documentCurrency) : "-"}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{formatDate(invoice.dueDate || invoice.invoiceDate)}</TableCell>
+                <TableCell className="whitespace-nowrap text-sm">{invoice.collectionTarget ? formatCurrency(invoice.collectionTarget, invoice.documentCurrency || invoice.currency) : "-"}</TableCell>
                 <TableCell className="whitespace-nowrap">
                   <Badge variant="secondary" className={invoice.overdue ? "bg-destructive/15 text-destructive hover:bg-destructive/15" : "bg-green-100/50 text-green-700 hover:bg-green-100/50"}>
                     {invoice.overdue ? "Overdue" : "On Time"}
                   </Badge>
                 </TableCell>
                 <TableCell className="text-right whitespace-nowrap">
-                  {daysOverdue > 0 ? (
-                    <span className="text-destructive font-medium">{daysOverdue}d</span>
+                  {invoice.overdue ? (
+                    <span className="text-destructive font-medium">Overdue</span>
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
@@ -355,7 +369,7 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Voucher</p>
-                  <p className="font-medium text-primary">{selectedInvoice.invoiceNo}</p>
+                  <p className="font-medium text-primary">{selectedInvoice.voucher || selectedInvoice.invoiceNo || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Invoice Date</p>
@@ -367,15 +381,15 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Currency</p>
-                  <p className="font-medium">{selectedInvoice.documentCurrency || "USD"}</p>
+                  <p className="font-medium">{selectedInvoice.documentCurrency || selectedInvoice.currency || "USD"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Amount in Transaction</p>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.value, selectedInvoice.documentCurrency)}</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.value || selectedInvoice.amount || 0, selectedInvoice.documentCurrency || selectedInvoice.currency)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Balance</p>
-                  <p className="font-medium">{formatCurrency(selectedInvoice.balance || selectedInvoice.value, selectedInvoice.documentCurrency)}</p>
+                  <p className="font-medium">{formatCurrency(selectedInvoice.balance || selectedInvoice.value || selectedInvoice.amount || 0, selectedInvoice.documentCurrency || selectedInvoice.currency)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Accounting Currency Balance</p>
@@ -399,11 +413,11 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Business Unit</p>
-                  <p className="font-medium text-sm">{selectedInvoice.businessUnit || "-"}</p>
+                  <p className="font-medium text-sm">{selectedInvoice.businessUnit || selectedInvoice.business_unit || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Cost Center</p>
-                  <p className="font-medium text-sm">{selectedInvoice.costCenter || "-"}</p>
+                  <p className="font-medium text-sm">{selectedInvoice.costCenter || selectedInvoice.cost_center || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Vendor</p>
@@ -415,11 +429,11 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Onsite/Offshore</p>
-                  <p className="font-medium text-sm">{selectedInvoice.onsiteOffshore || "-"}</p>
+                  <p className="font-medium text-sm">{selectedInvoice.onsiteOffshore || selectedInvoice.onsite_offshore || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Revised Overdue Bucket</p>
-                  <p className="font-medium text-sm">{selectedInvoice.revisedOverdueBucket || "-"}</p>
+                  <p className="font-medium text-sm">{selectedInvoice.revisedOverdueBucket || selectedInvoice.revised_overdue_bucket || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Geo</p>
@@ -431,15 +445,15 @@ export function InvoicesTable({
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Customer Reference SO-FO</p>
-                  <p className="font-medium text-sm">{selectedInvoice.customerReferenceSoFo || "-"}</p>
+                  <p className="font-medium text-sm">{selectedInvoice.customerReferenceSoFo || selectedInvoice.customer_reference_sofo || "-"}</p>
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Asapla Document</p>
-                  <p className="font-medium text-sm">{selectedInvoice.asapla || "-"}</p>
+                  <p className="text-sm text-muted-foreground">Axapta Document</p>
+                  <p className="font-medium text-sm">{selectedInvoice.asapla || selectedInvoice.axapta_document || "-"}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Closed Date</p>
-                  <p className="font-medium text-sm">{selectedInvoice.closedDate ? formatDate(selectedInvoice.closedDate) : "-"}</p>
+                  <p className="font-medium text-sm">{selectedInvoice.closedDate || selectedInvoice.closed_date ? formatDate(selectedInvoice.closedDate || selectedInvoice.closed_date || "") : "-"}</p>
                 </div>
               </div>
 
