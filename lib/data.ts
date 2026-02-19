@@ -1,7 +1,100 @@
 import type { Invoice } from "@/components/dashboard/invoices-table"
 
 // ========================
-// Get Portfolio Owners - remains the same for hierarchy
+// Mock Data - For development/fallback
+// ========================
+export const allInvoices: Invoice[] = [
+  {
+    id: "1",
+    customer: "Acme Corp",
+    customerAccount: "ACC-001",
+    customerGroup: "Large Enterprise",
+    voucher: "INV-2025-001",
+    invoice: "INV-2025-001",
+    invoiceDate: "2024-11-15",
+    dueDate: "2024-12-15",
+    currency: "USD",
+    value: 15000000,
+    balance: 15000000,
+    documentCurrency: "USD",
+    overdue: true,
+    previousOutstandingAmount: 500000,
+    collectionTarget: 5000000,
+    creditPeriod: 60,
+    penalInterest: true,
+    businessUnit: "RMD",
+    costCenter: "CC-001",
+    project: "P-001",
+    vendor: "V-001",
+    worker: "W-001",
+    onsiteOffshore: "Onsite",
+    revisedOverdueBucket: "90+",
+    geo: "NA",
+    company: "Acme Inc",
+    firstFollowUpScheduled: "2025-01-17",
+    firstFollowUpActual: "2025-01-18",
+    subsequentFollowUpActual: "2026-01-20",
+    reasonForOverdue: "Cash flow issues",
+  },
+  {
+    id: "2",
+    customer: "TechStart Inc",
+    customerAccount: "ACC-002",
+    customerGroup: "Mid-Market",
+    voucher: "INV-2025-002",
+    invoice: "INV-2025-002",
+    invoiceDate: "2024-12-01",
+    dueDate: "2025-01-01",
+    currency: "USD",
+    value: 8500000,
+    balance: 8500000,
+    documentCurrency: "USD",
+    overdue: true,
+    previousOutstandingAmount: 0,
+    collectionTarget: 3000000,
+    creditPeriod: 45,
+    penalInterest: true,
+    businessUnit: "CSD",
+    costCenter: "CC-002",
+    project: "P-002",
+    vendor: "V-002",
+    worker: "W-002",
+    onsiteOffshore: "Offshore",
+    revisedOverdueBucket: "61-90",
+    geo: "APAC",
+    company: "TechStart Ltd",
+    firstFollowUpScheduled: "2025-02-01",
+    firstFollowUpActual: "2025-02-02",
+    subsequentFollowUpActual: "2026-01-21",
+    reasonForOverdue: "Invoice disputed",
+  },
+]
+
+export const reminderRules = [
+  { id: "1", name: "Escalation Rule 1", condition: "overdue > 30 days", action: "Email Manager" },
+  { id: "2", name: "Escalation Rule 2", condition: "overdue > 60 days", action: "Notify Director" },
+]
+
+export const sentReminders = [
+  { id: "1", invoiceId: "INV-2025-001", type: "email", recipient: "customer@acme.com", sentDate: "2024-12-20" },
+  { id: "2", invoiceId: "INV-2025-002", type: "phone", recipient: "John Doe", sentDate: "2024-12-21" },
+]
+
+export const calls = [
+  { id: "1", invoiceId: "INV-2025-001", duration: 15, date: "2024-12-20", notes: "Customer confirmed payment" },
+  { id: "2", invoiceId: "INV-2025-002", duration: 10, date: "2024-12-21", notes: "Left voicemail" },
+]
+
+export const sampleTranscription = "Customer confirmed they will pay by end of month."
+export const sampleAIExtraction = { amount: "$8,500,000", dueDate: "2025-01-01" }
+
+export const queries = [
+  { id: "1", subject: "Payment Plan Request", customer: "Acme Corp", status: "pending" },
+  { id: "2", subject: "Invoice Dispute", customer: "TechStart Inc", status: "resolved" },
+]
+
+// ========================
+// Hierarchy and Roles
 // ========================
 export interface HierarchyEntry {
   person: string
@@ -23,9 +116,6 @@ export const hierarchyMappings: HierarchyEntry[] = [
   { person: "Girish", role: "bu_head", bu: "ALL", reportsTo: "" },
 ]
 
-// ========================
-// Roles and BUs
-// ========================
 export const roles = [
   { value: "all", label: "All Roles" },
   { value: "finance_agent", label: "Finance Agent" },
@@ -34,13 +124,15 @@ export const roles = [
   { value: "bu_head", label: "BU Head" },
 ]
 
-// Business Units will be loaded dynamically from backend
 export const businessUnits = [
   { value: "all", label: "All BUs" },
+  { value: "RMD", label: "RMD" },
+  { value: "CSD", label: "CSD" },
+  { value: "EAS", label: "EAS" },
 ]
 
 // ========================
-// Derive portfolio owners from hierarchy
+// Utility Functions
 // ========================
 export function getPortfolioOwners(roleFilter: string, buFilter: string): string[] {
   return hierarchyMappings
@@ -52,8 +144,19 @@ export function getPortfolioOwners(roleFilter: string, buFilter: string): string
     .map((h) => h.person)
 }
 
+export function getCustomersForOwners(selectedOwners: string[]): string[] {
+  if (selectedOwners.length === 0) return allInvoices.map((i) => i.customer)
+  const uniqueCustomers = new Set<string>()
+  for (const owner of selectedOwners) {
+    allInvoices
+      .filter((inv) => inv.worker === owner || inv.vendor === owner)
+      .forEach((inv) => uniqueCustomers.add(inv.customer))
+  }
+  return Array.from(uniqueCustomers)
+}
+
 // ========================
-// Compute KPIs from filtered invoices
+// Compute KPIs
 // ========================
 export function computeKPIs(invoices: Invoice[]) {
   const totalOutstanding = invoices.reduce((sum, inv) => sum + (inv.value || 0), 0)
@@ -65,7 +168,6 @@ export function computeKPIs(invoices: Invoice[]) {
   const avgCreditPeriod = invoices.length > 0
     ? Math.round(invoices.reduce((sum, inv) => sum + (inv.creditPeriod || 0), 0) / invoices.length)
     : 0
-  const penalInterestCount = invoices.filter((inv) => inv.penalInterest).length
 
   return {
     totalOutstanding,
@@ -78,7 +180,7 @@ export function computeKPIs(invoices: Invoice[]) {
 }
 
 // ========================
-// Compute aging buckets from filtered invoices
+// Compute Aging Buckets
 // ========================
 export function computeAgingBuckets(invoices: Invoice[]) {
   const now = new Date()
@@ -111,11 +213,11 @@ export function computeAgingBuckets(invoices: Invoice[]) {
 }
 
 // ========================
-// Compute cashflow forecast from filtered invoices (12 weeks)
+// Compute Cashflow Forecast
 // ========================
 export function computeCashflow(invoices: Invoice[], forecastType: "monthly" | "quarterly" = "monthly") {
   const totalValue = invoices.reduce((sum, inv) => sum + (inv.value || 0), 0)
-  
+
   if (forecastType === "monthly") {
     const confirmedPct = [0.15, 0.3, 0.45, 0.5]
     const projectedPct = [0.2, 0.4, 0.55, 0.65]
@@ -150,142 +252,17 @@ export function computeCashflow(invoices: Invoice[], forecastType: "monthly" | "
     const confirmedPct = [0.08, 0.12, 0.15, 0.18, 0.22, 0.26, 0.3, 0.35, 0.4, 0.45, 0.48, 0.5]
     const projectedPct = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.42, 0.5, 0.55, 0.62, 0.63, 0.65]
 
-    return [
-      { week: "Week 1", confirmed: Math.round(totalValue * confirmedPct[0]), projected: Math.round(totalValue * projectedPct[0]), confidenceHigh: Math.round(totalValue * projectedPct[0] * 1.15) },
-      { week: "Week 2", confirmed: Math.round(totalValue * confirmedPct[1]), projected: Math.round(totalValue * projectedPct[1]), confidenceHigh: Math.round(totalValue * projectedPct[1] * 1.15) },
-      { week: "Week 3", confirmed: Math.round(totalValue * confirmedPct[2]), projected: Math.round(totalValue * projectedPct[2]), confidenceHigh: Math.round(totalValue * projectedPct[2] * 1.15) },
-      { week: "Week 4", confirmed: Math.round(totalValue * confirmedPct[3]), projected: Math.round(totalValue * projectedPct[3]), confidenceHigh: Math.round(totalValue * projectedPct[3] * 1.15) },
-      { week: "Week 5", confirmed: Math.round(totalValue * confirmedPct[4]), projected: Math.round(totalValue * projectedPct[4]), confidenceHigh: Math.round(totalValue * projectedPct[4] * 1.15) },
-      { week: "Week 6", confirmed: Math.round(totalValue * confirmedPct[5]), projected: Math.round(totalValue * projectedPct[5]), confidenceHigh: Math.round(totalValue * projectedPct[5] * 1.15) },
-      { week: "Week 7", confirmed: Math.round(totalValue * confirmedPct[6]), projected: Math.round(totalValue * projectedPct[6]), confidenceHigh: Math.round(totalValue * projectedPct[6] * 1.15) },
-      { week: "Week 8", confirmed: Math.round(totalValue * confirmedPct[7]), projected: Math.round(totalValue * projectedPct[7]), confidenceHigh: Math.round(totalValue * projectedPct[7] * 1.15) },
-      { week: "Week 9", confirmed: Math.round(totalValue * confirmedPct[8]), projected: Math.round(totalValue * projectedPct[8]), confidenceHigh: Math.round(totalValue * projectedPct[8] * 1.15) },
-      { week: "Week 10", confirmed: Math.round(totalValue * confirmedPct[9]), projected: Math.round(totalValue * projectedPct[9]), confidenceHigh: Math.round(totalValue * projectedPct[9] * 1.15) },
-      { week: "Week 11", confirmed: Math.round(totalValue * confirmedPct[10]), projected: Math.round(totalValue * projectedPct[10]), confidenceHigh: Math.round(totalValue * projectedPct[10] * 1.15) },
-      { week: "Week 12", confirmed: Math.round(totalValue * confirmedPct[11]), projected: Math.round(totalValue * projectedPct[11]), confidenceHigh: Math.round(totalValue * projectedPct[11] * 1.15) },
-    ]
+    return confirmedPct.map((pct, i) => ({
+      week: `Week ${i + 1}`,
+      confirmed: Math.round(totalValue * pct),
+      projected: Math.round(totalValue * projectedPct[i]),
+      confidenceHigh: Math.round(totalValue * projectedPct[i] * 1.15),
+    }))
   }
 }
 
 // ========================
-// FX Rates for currency conversion (USD to INR)
-// ========================
-export const FX_RATES: Record<string, number> = {
-  "USD:INR": 83,
-  "INR:USD": 1 / 83,
-}
-
-// ========================
-// Convert Currency - utility for converting amounts
-// ========================
-export function convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
-  if (fromCurrency === toCurrency) return amount
-  const key = `${fromCurrency}:${toCurrency}`
-  const rate = FX_RATES[key]
-  if (!rate) return amount
-  return Math.round(amount * rate)
-}
-
-// ========================
-// Filter invoices by selected owners
-// ========================
-export function filterInvoicesByOwners(invoices: Invoice[], selectedOwners: string[]): Invoice[] {
-  if (selectedOwners.length === 0) return invoices
-  
-  // Get customers for selected owners
-  const customerSet = new Set<string>()
-  for (const owner of selectedOwners) {
-    for (const entry of hierarchyMappings) {
-      if (entry.person === owner) {
-        // Add all invoices for this person's customers
-        // In real scenario, this would be derived from data
-        customerSet.add(owner)
-      }
-    }
-  }
-  
-  // Since we're now using real data from backend, this filters based on selected owners
-  // The backend will handle the actual filtering
-  return invoices
-}
-
-// ========================
-// Filter invoices by Business Unit
-// ========================
-export function filterInvoicesByBU(invoices: Invoice[], bu: string): Invoice[] {
-  if (bu === "all") return invoices
-  
-  // Filter invoices by business unit
-  return invoices.filter((inv) => inv.businessUnit === bu)
-}
-
-// ========================
-// Enrich invoices with document currency
-// ========================
-export function enrichInvoicesWithDocumentCurrency(invoices: Invoice[]): Invoice[] {
-  // Since real data from Dataverse already has currency information,
-  // this function ensures all invoices have the documentCurrency field
-  return invoices.map((invoice) => ({
-    ...invoice,
-    documentCurrency: invoice.documentCurrency || "USD",
-  }))
-}
-  
-  if (forecastType === "monthly") {
-    // 4 weeks (1 month) view
-    const confirmedPct = [0.15, 0.3, 0.45, 0.5]
-    const projectedPct = [0.2, 0.4, 0.55, 0.65]
-
-    return [
-      {
-        week: "Week 1",
-        confirmed: Math.round(totalValue * confirmedPct[0]),
-        projected: Math.round(totalValue * projectedPct[0]),
-        confidenceHigh: Math.round(totalValue * projectedPct[0] * 1.15),
-      },
-      {
-        week: "Week 2",
-        confirmed: Math.round(totalValue * confirmedPct[1]),
-        projected: Math.round(totalValue * projectedPct[1]),
-        confidenceHigh: Math.round(totalValue * projectedPct[1] * 1.15),
-      },
-      {
-        week: "Week 3",
-        confirmed: Math.round(totalValue * confirmedPct[2]),
-        projected: Math.round(totalValue * projectedPct[2]),
-        confidenceHigh: Math.round(totalValue * projectedPct[2] * 1.15),
-      },
-      {
-        week: "Week 4",
-        confirmed: Math.round(totalValue * confirmedPct[3]),
-        projected: Math.round(totalValue * projectedPct[3]),
-        confidenceHigh: Math.round(totalValue * projectedPct[3] * 1.15),
-      },
-    ]
-  } else {
-    // 12 weeks (3 months / quarterly) view
-    const confirmedPct = [0.08, 0.12, 0.15, 0.18, 0.22, 0.26, 0.3, 0.35, 0.4, 0.45, 0.48, 0.5]
-    const projectedPct = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.42, 0.5, 0.55, 0.62, 0.63, 0.65]
-
-    return [
-      { week: "Week 1", confirmed: Math.round(totalValue * confirmedPct[0]), projected: Math.round(totalValue * projectedPct[0]), confidenceHigh: Math.round(totalValue * projectedPct[0] * 1.15) },
-      { week: "Week 2", confirmed: Math.round(totalValue * confirmedPct[1]), projected: Math.round(totalValue * projectedPct[1]), confidenceHigh: Math.round(totalValue * projectedPct[1] * 1.15) },
-      { week: "Week 3", confirmed: Math.round(totalValue * confirmedPct[2]), projected: Math.round(totalValue * projectedPct[2]), confidenceHigh: Math.round(totalValue * projectedPct[2] * 1.15) },
-      { week: "Week 4", confirmed: Math.round(totalValue * confirmedPct[3]), projected: Math.round(totalValue * projectedPct[3]), confidenceHigh: Math.round(totalValue * projectedPct[3] * 1.15) },
-      { week: "Week 5", confirmed: Math.round(totalValue * confirmedPct[4]), projected: Math.round(totalValue * projectedPct[4]), confidenceHigh: Math.round(totalValue * projectedPct[4] * 1.15) },
-      { week: "Week 6", confirmed: Math.round(totalValue * confirmedPct[5]), projected: Math.round(totalValue * projectedPct[5]), confidenceHigh: Math.round(totalValue * projectedPct[5] * 1.15) },
-      { week: "Week 7", confirmed: Math.round(totalValue * confirmedPct[6]), projected: Math.round(totalValue * projectedPct[6]), confidenceHigh: Math.round(totalValue * projectedPct[6] * 1.15) },
-      { week: "Week 8", confirmed: Math.round(totalValue * confirmedPct[7]), projected: Math.round(totalValue * projectedPct[7]), confidenceHigh: Math.round(totalValue * projectedPct[7] * 1.15) },
-      { week: "Week 9", confirmed: Math.round(totalValue * confirmedPct[8]), projected: Math.round(totalValue * projectedPct[8]), confidenceHigh: Math.round(totalValue * projectedPct[8] * 1.15) },
-      { week: "Week 10", confirmed: Math.round(totalValue * confirmedPct[9]), projected: Math.round(totalValue * projectedPct[9]), confidenceHigh: Math.round(totalValue * projectedPct[9] * 1.15) },
-      { week: "Week 11", confirmed: Math.round(totalValue * confirmedPct[10]), projected: Math.round(totalValue * projectedPct[10]), confidenceHigh: Math.round(totalValue * projectedPct[10] * 1.15) },
-      { week: "Week 12", confirmed: Math.round(totalValue * confirmedPct[11]), projected: Math.round(totalValue * projectedPct[11]), confidenceHigh: Math.round(totalValue * projectedPct[11] * 1.15) },
-    ]
-  }
-}
-
-// ========================
-// Portfolio performance data for comparison tab
+// Portfolio Performance
 // ========================
 export interface PortfolioPerformance {
   owner: string
@@ -299,26 +276,23 @@ export interface PortfolioPerformance {
   penalInterestCount: number
 }
 
-export function computePortfolioPerformance(allInvoices: Invoice[]): PortfolioPerformance[] {
+export function computePortfolioPerformance(invoices: Invoice[]): PortfolioPerformance[] {
   const owners = hierarchyMappings.filter((h) => h.role !== "bu_head")
   const results: PortfolioPerformance[] = []
 
   for (const entry of owners) {
-    const customers = getCustomersForOwners([entry.person])
-    const ownerInvoices = allInvoices.filter((inv) => customers.includes(inv.customer))
+    const ownerInvoices = invoices.filter((inv) => inv.worker === entry.person || inv.vendor === entry.person)
 
     if (ownerInvoices.length === 0) continue
 
-    const totalOutstanding = ownerInvoices.reduce((sum, inv) => sum + inv.value, 0)
+    const totalOutstanding = ownerInvoices.reduce((sum, inv) => sum + (inv.value || 0), 0)
     const overdueAmount = ownerInvoices
       .filter((inv) => inv.overdue)
-      .reduce((sum, inv) => sum + inv.value, 0)
-    const collectionTarget = ownerInvoices.reduce((sum, inv) => sum + inv.collectionTarget, 0)
-    const collectionPct = collectionTarget > 0
-      ? Math.round((totalOutstanding / collectionTarget) * 100)
-      : 0
+      .reduce((sum, inv) => sum + (inv.value || 0), 0)
+    const collectionTarget = ownerInvoices.reduce((sum, inv) => sum + (inv.collectionTarget || 0), 0)
+    const collectionPct = collectionTarget > 0 ? Math.round((totalOutstanding / collectionTarget) * 100) : 0
     const avgCreditPeriod = Math.round(
-      ownerInvoices.reduce((sum, inv) => sum + inv.creditPeriod, 0) / ownerInvoices.length
+      ownerInvoices.reduce((sum, inv) => sum + (inv.creditPeriod || 0), 0) / ownerInvoices.length
     )
     const penalInterestCount = ownerInvoices.filter((inv) => inv.penalInterest).length
 
@@ -339,221 +313,37 @@ export function computePortfolioPerformance(allInvoices: Invoice[]): PortfolioPe
 }
 
 // ========================
-// All mock invoices
+// FX Rates
 // ========================
-export const allInvoices: Invoice[] = [
-  {
-    id: "1",
-    collectionAgent: "Venki",
-    customer: "Acme Corp",
-    invoiceNo: "INV-2025-001",
-    invoiceDate: "2024-11-15",
-    invoiceProcessingDate: "2024-11-18",
-    value: 1500000,
-    firstFollowUpScheduled: "2025-01-17",
-    firstFollowUpActual: "2025-01-18",
-    subsequentFollowUpActual: "2026-01-20",
-    previousOutstandingInvoiceNo: "INV-2024-045",
-    previousOutstandingAmount: 500000,
-    collectionTarget: 5000000,
-    creditPeriod: 60,
-    penalInterest: true,
-    overdue: true,
-    reasonForOverdue: "Cash flow issues at customer end",
-  },
-  {
-    id: "2",
-    collectionAgent: "Venki",
-    customer: "TechStart Inc",
-    invoiceNo: "INV-2025-002",
-    invoiceDate: "2024-12-01",
-    invoiceProcessingDate: "2024-12-03",
-    value: 850000,
-    firstFollowUpScheduled: "2025-02-01",
-    firstFollowUpActual: "2025-02-02",
-    subsequentFollowUpActual: "2026-01-21",
-    previousOutstandingInvoiceNo: "",
-    previousOutstandingAmount: 0,
-    collectionTarget: 4000000,
-    creditPeriod: 45,
-    penalInterest: true,
-    overdue: true,
-    reasonForOverdue: "Invoice under dispute by customer",
-  },
-  {
-    id: "3",
-    collectionAgent: "Priya",
-    customer: "Enterprise Co",
-    invoiceNo: "INV-2025-003",
-    invoiceDate: "2024-10-10",
-    invoiceProcessingDate: "2024-10-12",
-    value: 3500000,
-    firstFollowUpScheduled: "2024-12-12",
-    firstFollowUpActual: "2024-12-12",
-    subsequentFollowUpActual: "-",
-    previousOutstandingInvoiceNo: "",
-    previousOutstandingAmount: 0,
-    collectionTarget: 6000000,
-    creditPeriod: 60,
-    penalInterest: false,
-    overdue: false,
-    reasonForOverdue: "",
-  },
-  {
-    id: "4",
-    collectionAgent: "Priya",
-    customer: "Global Systems",
-    invoiceNo: "INV-2025-004",
-    invoiceDate: "2024-11-20",
-    invoiceProcessingDate: "2024-11-22",
-    value: 2200000,
-    firstFollowUpScheduled: "2025-01-22",
-    firstFollowUpActual: "2025-01-22",
-    subsequentFollowUpActual: "2026-01-22",
-    previousOutstandingInvoiceNo: "INV-2024-032",
-    previousOutstandingAmount: 800000,
-    collectionTarget: 5000000,
-    creditPeriod: 60,
-    penalInterest: false,
-    overdue: true,
-    reasonForOverdue: "Partial payment received, balance pending approval",
-  },
-  {
-    id: "5",
-    collectionAgent: "Venki",
-    customer: "Innovation Labs",
-    invoiceNo: "INV-2025-005",
-    invoiceDate: "2024-10-25",
-    invoiceProcessingDate: "2024-10-28",
-    value: 1850000,
-    firstFollowUpScheduled: "2024-12-28",
-    firstFollowUpActual: "2024-12-29",
-    subsequentFollowUpActual: "2026-01-25",
-    previousOutstandingInvoiceNo: "INV-2024-050",
-    previousOutstandingAmount: 1200000,
-    collectionTarget: 4000000,
-    creditPeriod: 45,
-    penalInterest: true,
-    overdue: true,
-    reasonForOverdue: "Customer disputing service charges",
-  },
-  {
-    id: "6",
-    collectionAgent: "Priya",
-    customer: "Tech Solutions",
-    invoiceNo: "INV-2025-006",
-    invoiceDate: "2025-01-10",
-    invoiceProcessingDate: "2025-01-12",
-    value: 980000,
-    firstFollowUpScheduled: "2025-03-12",
-    firstFollowUpActual: "-",
-    subsequentFollowUpActual: "-",
-    previousOutstandingInvoiceNo: "",
-    previousOutstandingAmount: 0,
-    collectionTarget: 6000000,
-    creditPeriod: 60,
-    penalInterest: false,
-    overdue: false,
-    reasonForOverdue: "",
-  },
-  {
-    id: "7",
-    collectionAgent: "Amit",
-    customer: "DataCorp Inc",
-    invoiceNo: "INV-2025-007",
-    invoiceDate: "2024-09-01",
-    invoiceProcessingDate: "2024-09-04",
-    value: 4500000,
-    firstFollowUpScheduled: "2024-11-04",
-    firstFollowUpActual: "2024-11-05",
-    subsequentFollowUpActual: "2026-02-01",
-    previousOutstandingInvoiceNo: "INV-2024-020",
-    previousOutstandingAmount: 3000000,
-    collectionTarget: 8000000,
-    creditPeriod: 60,
-    penalInterest: true,
-    overdue: true,
-    reasonForOverdue: "Legal proceedings initiated",
-  },
-  {
-    id: "8",
-    collectionAgent: "Amit",
-    customer: "CloudNet Services",
-    invoiceNo: "INV-2025-008",
-    invoiceDate: "2024-11-01",
-    invoiceProcessingDate: "2024-11-04",
-    value: 1250000,
-    firstFollowUpScheduled: "2025-01-04",
-    firstFollowUpActual: "2025-01-05",
-    subsequentFollowUpActual: "2026-01-30",
-    previousOutstandingInvoiceNo: "",
-    previousOutstandingAmount: 0,
-    collectionTarget: 3500000,
-    creditPeriod: 45,
-    penalInterest: true,
-    overdue: true,
-    reasonForOverdue: "Payment held up due to internal approval delays",
-  },
-]
-
-// ========================
-// Other mock data (reminders, calls, queries)
-// ========================
-export const reminderRules = [
-  { id: "1", name: "First Reminder", daysBefore: 7, template: "friendly_reminder", enabled: true },
-  { id: "2", name: "Due Date Reminder", daysBefore: 0, template: "due_today", enabled: true },
-  { id: "3", name: "Overdue Notice", daysBefore: -7, template: "overdue_notice", enabled: true },
-  { id: "4", name: "Final Warning", daysBefore: -30, template: "final_warning", enabled: false },
-]
-
-export const sentReminders = [
-  { id: "1", invoiceNo: "INV-2025-001", customer: "Acme Corp", sentDate: "2026-01-10", status: "opened" as const, type: "Overdue Notice" },
-  { id: "2", invoiceNo: "INV-2025-002", customer: "TechStart Inc", sentDate: "2026-01-12", status: "sent" as const, type: "Due Date Reminder" },
-  { id: "3", invoiceNo: "INV-2025-004", customer: "Global Systems", sentDate: "2026-01-08", status: "clicked" as const, type: "Payment Plan" },
-  { id: "4", invoiceNo: "INV-2025-006", customer: "Tech Solutions", sentDate: "2026-01-15", status: "bounced" as const, type: "First Reminder" },
-]
-
-export const calls = [
-  { id: "1", customer: "Acme Corp", invoiceNo: "INV-2025-001", callDate: "2026-01-18", duration: "8:45", status: "completed" as const },
-  { id: "2", customer: "Global Systems", invoiceNo: "INV-2025-004", callDate: "2026-01-17", duration: "12:30", status: "completed" as const },
-  { id: "3", customer: "TechStart Inc", invoiceNo: "INV-2025-002", callDate: "2026-01-16", duration: "0:00", status: "missed" as const },
-  { id: "4", customer: "Innovation Labs", invoiceNo: "INV-2025-005", callDate: "2026-01-20", duration: "0:00", status: "scheduled" as const },
-]
-
-export const sampleTranscription = `Agent: Good morning, this is Sarah from Accounts Receivable calling about invoice INV-2025-001.
-
-Customer: Hi Sarah, yes I was expecting your call.
-
-Agent: I wanted to follow up on the outstanding balance of $15,000. We haven't received payment yet and it's now 30 days overdue.
-
-Customer: I understand. We've been having some cash flow challenges this month, but I can commit to making a payment.
-
-Agent: That's great to hear. What amount can you commit to and by when?
-
-Customer: I can pay $10,000 by January 25th, and the remaining $5,000 by February 10th.
-
-Agent: Perfect, I'll note that down. So $10,000 by January 25th and $5,000 by February 10th. Is that correct?
-
-Customer: Yes, that's correct.
-
-Agent: Thank you for your commitment. I'll send you a confirmation email with these details.`
-
-export const sampleAIExtraction = {
-  promisedAmount: 10000,
-  promisedDate: "2026-01-25",
-  confidenceScore: 0.92,
-  summary: "Customer acknowledged the overdue invoice and committed to a two-part payment plan. They cited temporary cash flow challenges but were cooperative throughout the call.",
-  nextSteps: [
-    "Record payment commitment of $10,000 by Jan 25",
-    "Schedule follow-up for second payment of $5,000 by Feb 10",
-    "Send confirmation email with payment plan details",
-    "Update invoice status to 'Payment Plan'",
-  ],
+export const FX_RATES: Record<string, number> = {
+  "USD:INR": 83,
+  "INR:USD": 1 / 83,
 }
 
-export const queries = [
-  { id: "1", queryNo: "QRY-001", invoiceNo: "INV-2025-005", customer: "Innovation Labs", type: "dispute" as const, status: "open" as const, createdDate: "2026-01-10", description: "Customer disputes the service charges", assignee: "Venki" },
-  { id: "2", queryNo: "QRY-002", invoiceNo: "INV-2025-004", customer: "Global Systems", type: "payment_plan" as const, status: "pending" as const, createdDate: "2026-01-12", description: "Request for extended payment terms", assignee: "Priya" },
-  { id: "3", queryNo: "QRY-003", invoiceNo: "INV-2025-002", customer: "TechStart Inc", type: "clarification" as const, status: "resolved" as const, createdDate: "2026-01-08", description: "Question about line item details", assignee: "Venki" },
-  { id: "4", queryNo: "QRY-004", invoiceNo: "INV-2025-007", customer: "DataCorp Inc", type: "dispute" as const, status: "escalated" as const, createdDate: "2025-12-15", description: "Formal dispute of entire invoice", assignee: "Amit" },
-]
+export function convertCurrency(amount: number, fromCurrency: string, toCurrency: string): number {
+  if (fromCurrency === toCurrency) return amount
+  const key = `${fromCurrency}:${toCurrency}`
+  const rate = FX_RATES[key]
+  if (!rate) return amount
+  return Math.round(amount * rate)
+}
+
+// ========================
+// Filter Functions
+// ========================
+export function filterInvoicesByOwners(invoices: Invoice[], selectedOwners: string[]): Invoice[] {
+  if (selectedOwners.length === 0) return invoices
+  return invoices.filter((inv) => selectedOwners.includes(inv.worker || ""))
+}
+
+export function filterInvoicesByBU(invoices: Invoice[], bu: string): Invoice[] {
+  if (bu === "all") return invoices
+  return invoices.filter((inv) => inv.businessUnit === bu)
+}
+
+export function enrichInvoicesWithDocumentCurrency(invoices: Invoice[]): Invoice[] {
+  return invoices.map((invoice) => ({
+    ...invoice,
+    documentCurrency: invoice.documentCurrency || "USD",
+  }))
+}
