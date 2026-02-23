@@ -14,6 +14,7 @@ export async function GET(request: NextRequest) {
     const businessUnit = searchParams.get("business_unit") || "all"
     const entity = searchParams.get("entity") || "all"
     const currency = searchParams.get("currency") || "USD"
+    const customers = searchParams.get("customers") // Comma-separated list of customer accounts
 
     // Return metadata (BUs, Entities, etc.)
     if (action === "metadata") {
@@ -39,13 +40,18 @@ export async function GET(request: NextRequest) {
 
     // Fetch and return invoice data from backend
     console.log(
-      `[v0] Fetching invoices: BU=${businessUnit}, Entity=${entity}, Currency=${currency}`
+      `[v0] Fetching invoices: BU=${businessUnit}, Entity=${entity}, Currency=${currency}, Customers=${customers}`
     )
 
     const backendUrl = new URL(`${BACKEND_URL}/api/dashboard-data`)
     backendUrl.searchParams.append("business_unit", businessUnit)
     backendUrl.searchParams.append("entity", entity)
     backendUrl.searchParams.append("currency", currency)
+    
+    // Pass assigned customers to backend for filtering
+    if (customers) {
+      backendUrl.searchParams.append("customers", customers)
+    }
 
     const response = await fetch(backendUrl.toString(), {
       cache: "no-store",
@@ -57,6 +63,31 @@ export async function GET(request: NextRequest) {
     }
 
     const backendData = await response.json()
+
+    // Transform backend response to match frontend expectations
+    const transformedData = {
+      success: true,
+      data: backendData.invoices || [],
+      count: backendData.invoices?.length || 0,
+      summary: backendData.summary,
+      currency,
+    }
+
+    return NextResponse.json(transformedData)
+  } catch (error) {
+    console.error("[v0] API Error:", error)
+    return NextResponse.json(
+      {
+        success: false,
+        error:
+          error instanceof Error
+            ? error.message
+            : "Failed to fetch dashboard data",
+      },
+      { status: 500 }
+    )
+  }
+}
 
     // Transform backend response to match frontend expectations
     const transformedData = {

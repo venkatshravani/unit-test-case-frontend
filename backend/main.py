@@ -96,6 +96,7 @@ async def get_dashboard_data(
     entity: Optional[str] = Query("all"),
     currency: Optional[str] = Query("USD"),
     action: Optional[str] = Query(None),
+    customers: Optional[str] = Query(None),
 ):
     """
     Get dashboard data with filtering and currency conversion
@@ -105,6 +106,7 @@ async def get_dashboard_data(
     - entity: Filter by entity/company (default: 'all')
     - currency: Display currency - USD or INR (default: 'USD')
     - action: 'data' for invoices, 'metadata' for filter options
+    - customers: Comma-separated list of customer account codes to filter by (optional, for user-based filtering)
     
     Returns:
     - action=data: List of invoices with aggregations and summary
@@ -119,10 +121,16 @@ async def get_dashboard_data(
         if currency not in ["USD", "INR"]:
             raise HTTPException(status_code=400, detail="Currency must be USD or INR")
         
+        # Parse customers parameter
+        customer_list = None
+        if customers:
+            customer_list = [c.strip() for c in customers.split(",") if c.strip()]
+        
         data = dashboard_service.get_dashboard_data(
             business_unit=business_unit,
             entity=entity,
-            currency=currency
+            currency=currency,
+            customers=customer_list
         )
         
         return data

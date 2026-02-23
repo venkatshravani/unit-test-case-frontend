@@ -1,130 +1,45 @@
 "use client"
 
-import { useState, useMemo } from "react"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { GlobalFilters, type FilterState } from "@/components/dashboard/global-filters"
-import { KPICards } from "@/components/dashboard/kpi-cards"
-import { AgingBucketsChart } from "@/components/dashboard/aging-buckets-chart"
-import { CashflowForecastChart } from "@/components/dashboard/cashflow-forecast-chart"
-import { InvoicesTable, type Invoice } from "@/components/dashboard/invoices-table"
-import { CustomerAgingSummary } from "@/components/dashboard/customer-aging-summary"
-import { RemindersTab } from "@/components/dashboard/reminders-tab"
-import { CallsTab } from "@/components/dashboard/calls-tab"
-import { QueriesTab } from "@/components/dashboard/queries-tab"
-import { ReportsTab } from "@/components/dashboard/reports-tab"
-import { PortfolioPerformanceTab } from "@/components/dashboard/portfolio-performance-tab"
-import { AICollectionInsights } from "@/components/dashboard/ai-collection-insights"
-import { DataStatusBanner } from "@/components/dashboard/data-status-banner"
-import {
-  FileTextIcon,
-  BellIcon,
-  PhoneIcon,
-  MessageSquareIcon,
-  BarChart3Icon,
-  BriefcaseIcon,
-} from "lucide-react"
-import {
-  allInvoices,
-  reminderRules,
-  sentReminders,
-  calls,
-  sampleTranscription,
-  sampleAIExtraction,
-  queries,
-  filterInvoicesByOwners,
-  filterInvoicesByBU,
-  computeKPIs,
-  computeAgingBuckets,
-  computePortfolioPerformance,
-  enrichInvoicesWithDocumentCurrency,
-} from "@/lib/data"
+import { useEffect } from "react"
+import { useRouter } from "next/navigation"
+import { createClient } from "@/lib/supabase/client"
 
-export default function Dashboard() {
-  const [activeTab, setActiveTab] = useState("invoices")
-  const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
-  const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
-  const [showDetailedInvoices, setShowDetailedInvoices] = useState(false)
-  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
-  // Enrich invoices with document currency on load
-  const [invoiceData, setInvoiceData] = useState<Invoice[]>(() => 
-    enrichInvoicesWithDocumentCurrency(allInvoices)
-  )
+export default function HomePage() {
+  const router = useRouter()
+  const supabase = createClient()
 
-  // Filter state lifted from GlobalFilters
-  const [filters, setFilters] = useState<FilterState>({
-    businessUnit: "all",
-    entity: "all",
-    customer: "all",
-    currency: "USD",
-    role: "all",
-    selectedOwners: [],
-    dateRange: undefined,
-  })
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        const {
+          data: { user },
+        } = await supabase.auth.getUser()
 
-  const handleFilterChange = (newFilters: FilterState) => {
-    setFilters(newFilters)
-  }
-
-  // Compute filtered invoices based on current filters
-  const filteredInvoices = useMemo(() => {
-    let result = invoiceData
-
-    // Filter by BU
-    result = filterInvoicesByBU(result, filters.businessUnit)
-
-    // Filter by selected portfolio owners
-    result = filterInvoicesByOwners(result, filters.selectedOwners)
-
-    // Filter by customer
-    if (filters.customer !== "all") {
-      result = result.filter(
-        (inv) => inv.customer.toLowerCase().replace(/\s+/g, "") === filters.customer.toLowerCase().replace(/\s+/g, "")
-      )
+        if (user) {
+          // User is authenticated, redirect to dashboard
+          router.push("/dashboard")
+        } else {
+          // No user, redirect to login
+          router.push("/auth/login")
+        }
+      } catch (err) {
+        console.error("[v0] Auth check error:", err)
+        router.push("/auth/login")
+      }
     }
 
-    return result
-  }, [invoiceData, filters.businessUnit, filters.selectedOwners, filters.customer])
-
-  // Filter invoices by selected customer if in detail view
-  const detailInvoices = useMemo(() => {
-    if (!selectedCustomer) return filteredInvoices
-    return filteredInvoices.filter(
-      (inv) => inv.customer.toLowerCase().replace(/\s+/g, "") === selectedCustomer.toLowerCase().replace(/\s+/g, "")
-    )
-  }, [filteredInvoices, selectedCustomer])
-
-  // Dynamically recompute KPIs, aging, cashflow from filtered data
-  const kpiData = useMemo(() => computeKPIs(filteredInvoices), [filteredInvoices])
-  const agingData = useMemo(() => computeAgingBuckets(filteredInvoices), [filteredInvoices])
-  const portfolioData = useMemo(() => computePortfolioPerformance(invoiceData), [invoiceData])
-
-  const currentDate = new Date().toLocaleDateString("en-US", {
-    month: "numeric",
-    day: "numeric",
-    year: "numeric",
-  })
-
-  const handleUpdateInvoice = (
-    invoiceId: string,
-    updates: { firstFollowUpActual: string; subsequentFollowUpActual: string; notes?: string }
-  ) => {
-    setInvoiceData((prev) =>
-      prev.map((inv) =>
-        inv.id === invoiceId
-          ? {
-              ...inv,
-              firstFollowUpActual: updates.firstFollowUpActual,
-              subsequentFollowUpActual: updates.subsequentFollowUpActual,
-            }
-          : inv
-      )
-    )
-  }
+    checkAuth()
+  }, [supabase, router])
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+    <div className="flex items-center justify-center min-h-screen">
+      <div className="text-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+        <p className="text-muted-foreground">Loading...</p>
+      </div>
+    </div>
+  )
+}
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
             <div>

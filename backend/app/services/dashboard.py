@@ -56,7 +56,8 @@ class DashboardService:
         self,
         business_unit: str = "all",
         entity: str = "all",
-        currency: str = "USD"
+        currency: str = "USD",
+        customers: Optional[List[str]] = None
     ) -> Dict[str, Any]:
         """
         Get complete dashboard data with invoices, aggregations, and aging buckets
@@ -65,6 +66,7 @@ class DashboardService:
             business_unit: Filter by business unit
             entity: Filter by entity/company
             currency: Display currency (USD or INR)
+            customers: Optional list of customer account codes to filter by (for user-based filtering)
             
         Returns:
             Dictionary with invoices, summary stats, and aging bucket data
@@ -93,12 +95,19 @@ class DashboardService:
                         target_currency=currency,
                         fx_rates=fx_rates
                     )
+                    
+                    # Filter by assigned customers if provided
+                    if customers and len(customers) > 0:
+                        customer_account = invoice.get("customer_account") or record.get("cr16e_customeraccount")
+                        if customer_account not in customers:
+                            continue
+                    
                     invoices.append(invoice)
                 except Exception as e:
                     logger.warning(f"[v0] Error formatting record {record.get('cr16e_customeraccounttransactionid')}: {str(e)}")
                     continue
             
-            logger.info(f"[v0] Formatted {len(invoices)} invoices")
+            logger.info(f"[v0] Formatted {len(invoices)} invoices (filtered by {len(customers) if customers else 'all'} customers)")
             
             # Calculate summary statistics
             summary = self._calculate_summary(invoices, currency)
