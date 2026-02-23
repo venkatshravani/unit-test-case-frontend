@@ -32,18 +32,25 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
         setUser(user)
 
-        // Fetch assigned customers for this user
-        const { data: assignments, error } = await supabase
-          .from('user_customer_assignments')
-          .select('customer_account')
-          .eq('user_id', user.id)
+        // Try to fetch assigned customers, but don't fail if table doesn't exist yet
+        try {
+          const { data: assignments, error } = await supabase
+            .from('user_customer_assignments')
+            .select('customer_account')
+            .eq('user_id', user.id)
 
-        if (error) {
-          console.error('[v0] Error fetching assignments:', error)
-        } else {
-          const customers = assignments?.map((a) => a.customer_account) || []
-          setAssignedCustomers(customers)
-          console.log('[v0] Assigned customers:', customers)
+          if (!error && assignments) {
+            const customers = assignments.map((a) => a.customer_account) || []
+            setAssignedCustomers(customers)
+            console.log('[v0] Assigned customers:', customers)
+          } else {
+            console.log('[v0] No customer assignments found (table may not exist yet)')
+            // Show all customers if no assignments
+            setAssignedCustomers([])
+          }
+        } catch (tableErr) {
+          console.log('[v0] Customer assignment table not available yet, showing all invoices')
+          setAssignedCustomers([])
         }
       } catch (err) {
         console.error('[v0] Auth error:', err)
