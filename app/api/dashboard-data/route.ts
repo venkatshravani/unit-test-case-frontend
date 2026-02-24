@@ -88,28 +88,3 @@ export async function GET(request: NextRequest) {
     )
   }
 }
-
-    // Transform backend response to match frontend expectations
-    const transformedData = {
-      success: true,
-      data: backendData.invoices || [],
-      count: backendData.invoices?.length || 0,
-      summary: backendData.summary,
-      currency,
-    }
-
-    return NextResponse.json(transformedData)
-  } catch (error) {
-    console.error("[v0] API Error:", error)
-    return NextResponse.json(
-      {
-        success: false,
-        error:
-          error instanceof Error
-            ? error.message
-            : "Failed to fetch dashboard data",
-      },
-      { status: 500 }
-    )
-  }
-}
