@@ -50,10 +50,10 @@ interface RemindersTabProps {
 }
 
 const statusConfig = {
-  sent: { label: "Sent", icon: MailIcon, className: "bg-blue-100 text-blue-800" },
-  opened: { label: "Opened", icon: CheckCircleIcon, className: "bg-green-100 text-green-800" },
-  clicked: { label: "Clicked", icon: CheckCircleIcon, className: "bg-emerald-100 text-emerald-800" },
-  bounced: { label: "Bounced", icon: AlertCircleIcon, className: "bg-red-100 text-red-800" },
+  sent: { label: "Sent", icon: MailIcon, variant: "secondary" as const },
+  opened: { label: "Opened", icon: CheckCircleIcon, variant: "default" as const },
+  clicked: { label: "Clicked", icon: CheckCircleIcon, variant: "default" as const },
+  bounced: { label: "Bounced", icon: AlertCircleIcon, variant: "destructive" as const },
 }
 
 export function RemindersTab({
@@ -144,9 +144,7 @@ export function RemindersTab({
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {sentReminders.map((reminder) => {
-                  const status = statusConfig[reminder.status]
-                  return (
+                {sentReminders.map((reminder) => (
                     <TableRow
                       key={reminder.id}
                       className={`cursor-pointer hover:bg-muted/30 ${
@@ -165,14 +163,15 @@ export function RemindersTab({
                       </TableCell>
                       <TableCell>{reminder.type}</TableCell>
                       <TableCell>
-                        <Badge variant="secondary" className={status.className}>
-                          <status.icon className="h-3 w-3 mr-1" />
-                          {status.label}
-                        </Badge>
+                        {statusConfig[reminder.status] && (
+                          <Badge variant={statusConfig[reminder.status].variant}>
+                            <statusConfig[reminder.status].icon className="h-3 w-3 mr-1" />
+                            {statusConfig[reminder.status].label}
+                          </Badge>
+                        )}
                       </TableCell>
                     </TableRow>
-                  )
-                })}
+                ))}
               </TableBody>
             </Table>
           </CardContent>
