@@ -1,42 +1,265 @@
-"use client"
+'use client'
 
-import { useEffect } from "react"
-import { useRouter } from "next/navigation"
-import { createClient } from "@/lib/supabase/client"
+import { useState } from 'react'
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { GlobalFilters, type FilterState } from '@/components/dashboard/global-filters'
+import { KPICards } from '@/components/dashboard/kpi-cards'
+import { AgingBucketsChart } from '@/components/dashboard/aging-buckets-chart'
+import { CashflowForecastChart } from '@/components/dashboard/cashflow-forecast-chart'
+import { InvoicesTable } from '@/components/dashboard/invoices-table'
+import { CustomerAgingSummary } from '@/components/dashboard/customer-aging-summary'
+import { RemindersTab } from '@/components/dashboard/reminders-tab'
+import { CallsTab } from '@/components/dashboard/calls-tab'
+import { QueriesTab } from '@/components/dashboard/queries-tab'
+import { ReportsTab } from '@/components/dashboard/reports-tab'
+import { PortfolioPerformanceTab } from '@/components/dashboard/portfolio-performance-tab'
+import { AICollectionInsights } from '@/components/dashboard/ai-collection-insights'
+import { DataStatusBanner } from '@/components/dashboard/data-status-banner'
+import {
+  FileTextIcon,
+  BellIcon,
+  PhoneIcon,
+  MessageSquareIcon,
+  BarChart3Icon,
+  BriefcaseIcon,
+} from 'lucide-react'
+import {
+  allInvoices,
+  reminderRules,
+  sentReminders,
+  calls,
+  sampleTranscription,
+  sampleAIExtraction,
+  queries,
+  filterInvoicesByOwners,
+  filterInvoicesByBU,
+  computeKPIs,
+  computeAgingBuckets,
+  computePortfolioPerformance,
+  enrichInvoicesWithDocumentCurrency,
+} from '@/lib/data'
 
-export default function HomePage() {
-  const router = useRouter()
-  const supabase = createClient()
+export default function Dashboard() {
+  const [activeTab, setActiveTab] = useState('invoices')
+  const [selectedReminder, setSelectedReminder] = useState<typeof sentReminders[0] | undefined>()
+  const [selectedCall, setSelectedCall] = useState<typeof calls[0] | undefined>()
+  const [showDetailedInvoices, setShowDetailedInvoices] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<string | null>(null)
+  
+  // Enrich invoices with document currency on load
+  const [invoiceData] = useState(() => enrichInvoicesWithDocumentCurrency(allInvoices))
 
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const {
-          data: { user },
-        } = await supabase.auth.getUser()
+  // Filter state
+  const [filters, setFilters] = useState<FilterState>({
+    businessUnit: 'all',
+    entity: 'all',
+    customer: 'all',
+    currency: 'USD',
+    role: 'all',
+    selectedOwners: [],
+    dateRange: undefined,
+  })
 
-        if (user) {
-          // User is authenticated, redirect to dashboard
-          router.push("/dashboard")
-        } else {
-          // No user, redirect to login
-          router.push("/auth/login")
-        }
-      } catch (err) {
-        console.error("[v0] Auth check error:", err)
-        router.push("/auth/login")
-      }
-    }
+  const handleFilterChange = (newFilters: FilterState) => {
+    setFilters(newFilters)
+  }
 
-    checkAuth()
-  }, [supabase, router])
+  // Compute filtered invoices
+  let filteredInvoices = invoiceData
+  filteredInvoices = filterInvoicesByBU(filteredInvoices, filters.businessUnit)
+  filteredInvoices = filterInvoicesByOwners(filteredInvoices, filters.selectedOwners)
+  if (filters.customer !== 'all') {
+    filteredInvoices = filteredInvoices.filter(
+      (inv) => inv.customer.toLowerCase().replace(/\s+/g, '') === filters.customer.toLowerCase().replace(/\s+/g, '')
+    )
+  }
+
+  // Filter invoices by selected customer if in detail view
+  const detailInvoices = showDetailedInvoices && selectedCustomer
+    ? filteredInvoices.filter(
+        (inv) => inv.customer.toLowerCase().replace(/\s+/g, '') === selectedCustomer.toLowerCase().replace(/\s+/g, '')
+      )
+    : filteredInvoices
+
+  // Compute KPIs, aging, and portfolio data
+  const kpiData = computeKPIs(filteredInvoices)
+  const agingData = computeAgingBuckets(filteredInvoices)
+  const portfolioData = computePortfolioPerformance(invoiceData)
+
+  const currentDate = new Date().toLocaleDateString('en-US', {
+    month: 'numeric',
+    day: 'numeric',
+    year: 'numeric',
+  })
 
   return (
-    <div className="flex items-center justify-center min-h-screen">
-      <div className="text-center">
-        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-        <p className="text-muted-foreground">Loading...</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      {/* Header */}
+      <header className="sticky top-0 z-50 border-b bg-card/95 backdrop-blur supports-[backdrop-filter]:bg-card/60">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-foreground">Invoice Collection Dashboard</h1>
+              <p className="text-sm text-muted-foreground">
+                Manage invoices, track payments, and coordinate collection efforts
+              </p>
+            </div>
+            <div className="text-sm text-muted-foreground">Data Last Refreshed: {currentDate}</div>
+          </div>
+        </div>
+      </header>
+
+      <main className="container mx-auto px-4 py-6 space-y-6">
+        {/* Data Status Banner */}
+        <DataStatusBanner />
+
+        {/* Global Filters */}
+        <GlobalFilters onFilterChange={handleFilterChange} />
+
+        {/* Active View Context Label */}
+        <div className="text-sm text-muted-foreground px-4 py-2 bg-muted/30 rounded-md border border-muted">
+          <span className="font-medium">Active View:</span>
+          {filters.entity !== 'all' && <span> {filters.entity} Entity</span>}
+          {filters.businessUnit !== 'all' && <span> | BU: {filters.businessUnit}</span>}
+          {filters.selectedOwners.length > 0 && (
+            <span> | Portfolio Owner: {filters.selectedOwners.join(', ')}</span>
+          )}
+          {filters.entity === 'all' && filters.businessUnit === 'all' && filters.selectedOwners.length === 0 && (
+            <span> All Entities | All Business Units | All Owners</span>
+          )}
+        </div>
+
+        {/* KPI Cards with Header */}
+        <div className="space-y-3">
+          <p className="text-sm font-semibold text-muted-foreground px-1">
+            {filters.entity !== 'all' ? `${filters.entity}` : 'All Entities'} - Key Collection Metrics
+          </p>
+          <KPICards data={kpiData} currency={filters.currency} />
+        </div>
+
+        {/* Charts Row with AI Insights */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-1">
+            <AgingBucketsChart data={agingData} />
+          </div>
+          <div className="lg:col-span-1">
+            <CashflowForecastChart invoices={filteredInvoices} />
+          </div>
+          <div className="lg:col-span-1">
+            <AICollectionInsights invoices={filteredInvoices} />
+          </div>
+        </div>
+
+        {/* Tabs Navigation */}
+        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
+          <TabsList className="bg-card border shadow-sm h-auto p-1 flex-wrap">
+            <TabsTrigger
+              value="invoices"
+              className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <FileTextIcon className="h-4 w-4" />
+              Invoices
+            </TabsTrigger>
+            <TabsTrigger
+              value="reminders"
+              className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <BellIcon className="h-4 w-4" />
+              Reminders
+            </TabsTrigger>
+            <TabsTrigger
+              value="calls"
+              className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <PhoneIcon className="h-4 w-4" />
+              Calls
+            </TabsTrigger>
+            <TabsTrigger
+              value="queries"
+              className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <MessageSquareIcon className="h-4 w-4" />
+              Queries
+            </TabsTrigger>
+            <TabsTrigger
+              value="portfolio"
+              className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <BriefcaseIcon className="h-4 w-4" />
+              Portfolio
+            </TabsTrigger>
+            <TabsTrigger
+              value="reports"
+              className="gap-2 data-[state=active]:bg-primary data-[state=active]:text-primary-foreground"
+            >
+              <BarChart3Icon className="h-4 w-4" />
+              Reports
+            </TabsTrigger>
+          </TabsList>
+
+          <TabsContent value="invoices" className="mt-4">
+            {!showDetailedInvoices ? (
+              <CustomerAgingSummary 
+                invoices={filteredInvoices} 
+                currency={filters.currency}
+                onCustomerSelect={(customer) => {
+                  setSelectedCustomer(customer)
+                  setShowDetailedInvoices(true)
+                }}
+              />
+            ) : (
+              <div className="space-y-4">
+                <button
+                  onClick={() => {
+                    setShowDetailedInvoices(false)
+                    setSelectedCustomer(null)
+                  }}
+                  className="text-sm text-primary hover:underline mb-4"
+                >
+                  ← Back to Customer Summary
+                </button>
+                {selectedCustomer && (
+                  <div className="mb-4 p-3 bg-muted rounded-lg">
+                    <p className="text-sm font-medium">Viewing invoices for: <span className="text-primary">{selectedCustomer}</span></p>
+                  </div>
+                )}
+                <InvoicesTable invoices={detailInvoices} hideCollectionAgent={true} />
+              </div>
+            )}
+          </TabsContent>
+
+          <TabsContent value="reminders" className="mt-4">
+            <RemindersTab
+              rules={reminderRules}
+              sentReminders={sentReminders}
+              selectedReminder={selectedReminder}
+              onSelectReminder={setSelectedReminder}
+            />
+          </TabsContent>
+
+          <TabsContent value="calls" className="mt-4">
+            <CallsTab
+              calls={calls}
+              selectedCall={selectedCall}
+              transcription={selectedCall?.id === '1' ? sampleTranscription : undefined}
+              aiExtraction={selectedCall?.id === '1' ? sampleAIExtraction : undefined}
+              onSelectCall={setSelectedCall}
+            />
+          </TabsContent>
+
+          <TabsContent value="queries" className="mt-4">
+            <QueriesTab queries={queries} />
+          </TabsContent>
+
+          <TabsContent value="portfolio" className="mt-4">
+            <PortfolioPerformanceTab data={portfolioData} />
+          </TabsContent>
+
+          <TabsContent value="reports" className="mt-4">
+            <ReportsTab />
+          </TabsContent>
+        </Tabs>
+      </main>
     </div>
   )
 }
